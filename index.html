@@ -6,6 +6,15 @@
 </head>
 <body>
   <h1>Listado de Archivos</h1>
+
+  <select onchange="if(this.value) window.open(this.value);">
+    <option value="">-- Elegí un archivo --</option>
+    <option value="1 Screenshot.pdf">Archivo 1</option>
+    <option value="pdf.pdf">Archivo 2</option>
+    <option value="viewer.seam.pdf">Archivo 3</option>
+    <option value="pdf.pdf">Archivo 4</option>
+  </select>
+
   <ul>
     <li><a href="1 Screenshot.pdf">Archivo 1</a></li>
     <li><a href="pdf.pdf">Archivo 2</a></li>
