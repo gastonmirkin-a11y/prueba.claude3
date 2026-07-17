@@ -34,9 +34,21 @@
     background: var(--azul);
     color: var(--blanco);
     padding: 18px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
   }
   header h1 { margin: 0; font-size: 1.45rem; font-weight: 600; }
   header p { margin: 4px 0 0; font-size: 0.9rem; opacity: 0.85; }
+  #btnSalir {
+    background: rgba(255,255,255,0.15);
+    color: var(--blanco);
+    font-size: 0.85rem;
+    padding: 7px 14px;
+  }
+  #btnSalir:hover { background: rgba(255,255,255,0.28); }
   main { max-width: 1200px; margin: 0 auto; padding: 20px 24px 60px; }
 
   .alertas {
@@ -51,14 +63,45 @@
   .alertas ul { margin: 0; padding-left: 20px; }
   .alertas li { margin: 3px 0; font-size: 0.95rem; }
 
-  section.panel {
+  section.panel, .tarjeta {
     background: var(--blanco);
     border: 1px solid var(--gris-borde);
     border-radius: 8px;
     padding: 18px 20px;
     margin-bottom: 20px;
   }
-  section.panel h2 { margin: 0 0 14px; font-size: 1.1rem; color: var(--azul); }
+  section.panel h2, .tarjeta h2 { margin: 0 0 14px; font-size: 1.1rem; color: var(--azul); }
+
+  .tarjeta { max-width: 640px; margin: 40px auto; }
+  .tarjeta ol { padding-left: 20px; }
+  .tarjeta li { margin: 8px 0; font-size: 0.95rem; }
+  .tarjeta textarea {
+    width: 100%;
+    min-height: 140px;
+    padding: 10px;
+    border: 1px solid var(--gris-borde);
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 0.85rem;
+  }
+  .mensaje-error {
+    background: var(--rojo-fondo);
+    border: 1px solid #f0b5ae;
+    color: var(--rojo);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-top: 12px;
+    font-size: 0.92rem;
+  }
+  .mensaje-info {
+    background: var(--gris-fondo);
+    color: var(--gris-texto);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-top: 12px;
+    font-size: 0.92rem;
+  }
+  .oculto { display: none !important; }
 
   form#formEscritura {
     display: grid;
@@ -172,11 +215,61 @@
 <body>
 
 <header>
-  <h1>📋 Certificados Notariales</h1>
-  <p>Seguimiento de pedidos y vencimientos — Capital: 15 días corridos · Provincia: 30 días corridos</p>
+  <div>
+    <h1>📋 Certificados Notariales</h1>
+    <p>Seguimiento de pedidos y vencimientos — Capital: 15 días corridos · Provincia: 30 días corridos</p>
+  </div>
+  <button type="button" id="btnSalir" class="oculto">Salir</button>
 </header>
 
-<main>
+<!-- Pantalla 1: falta configurar Firebase -->
+<div id="pantallaConfig" class="tarjeta oculto">
+  <h2>⚙️ Falta conectar la base de datos compartida</h2>
+  <p>Para que los cinco integrantes de la escribanía vean la misma información, la página necesita conectarse a una base de datos gratuita de Google (Firebase). Es una configuración que se hace <strong>una sola vez</strong>:</p>
+  <ol>
+    <li>Entrá a <a href="https://console.firebase.google.com" target="_blank" rel="noopener">console.firebase.google.com</a> con tu cuenta de Google y creá un proyecto (podés desactivar Google Analytics).</li>
+    <li>En <strong>Compilación → Authentication</strong>: botón «Comenzar», habilitá <strong>Correo electrónico/contraseña</strong> y en la pestaña «Users» creá <strong>un</strong> usuario: un email (puede ser inventado, ej. <code>escribania@miestudio.com</code>) y la clave compartida que van a usar los cinco.</li>
+    <li>En <strong>Compilación → Firestore Database</strong>: creá la base de datos (modo producción, ubicación <code>southamerica-east1</code>). Luego, en la pestaña <strong>Reglas</strong>, reemplazá todo por:<br>
+      <code>rules_version = '2';<br>service cloud.firestore {<br>&nbsp;&nbsp;match /databases/{database}/documents {<br>&nbsp;&nbsp;&nbsp;&nbsp;match /{document=**} {<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;allow read, write: if request.auth != null;<br>&nbsp;&nbsp;&nbsp;&nbsp;}<br>&nbsp;&nbsp;}<br>}</code><br>
+      y publicá.</li>
+    <li>En <strong>Configuración del proyecto (⚙️) → Tus apps</strong>: agregá una app <strong>Web (&lt;/&gt;)</strong>, ponele un nombre y copiá el bloque <code>firebaseConfig</code> que te muestra.</li>
+    <li>Pegá ese bloque acá abajo y tocá «Guardar configuración».</li>
+  </ol>
+  <textarea id="textoConfig" placeholder="Pegá acá el bloque firebaseConfig, por ejemplo:
+const firebaseConfig = {
+  apiKey: &quot;...&quot;,
+  authDomain: &quot;...&quot;,
+  projectId: &quot;...&quot;,
+  ...
+};"></textarea>
+  <div style="margin-top:10px;">
+    <button type="button" class="primario" id="btnGuardarConfig">Guardar configuración</button>
+  </div>
+  <div id="errorConfig" class="mensaje-error oculto"></div>
+</div>
+
+<!-- Pantalla 2: ingreso con la clave compartida -->
+<div id="pantallaLogin" class="tarjeta oculto">
+  <h2>🔐 Ingreso a la escribanía</h2>
+  <p>Escribí la clave compartida de la escribanía. Queda guardada en este navegador: no hace falta volver a escribirla cada vez.</p>
+  <form id="formLogin">
+    <div class="campo" id="campoEmail">
+      <label for="emailLogin">Email de la cuenta compartida</label>
+      <input type="email" id="emailLogin" autocomplete="username" placeholder="escribania@miestudio.com">
+    </div>
+    <div class="campo" style="margin-top:10px;">
+      <label for="claveLogin">Clave de la escribanía</label>
+      <input type="password" id="claveLogin" autocomplete="current-password" required>
+    </div>
+    <div style="margin-top:14px;">
+      <button type="submit" class="primario" id="btnIngresar">Ingresar</button>
+    </div>
+  </form>
+  <div id="errorLogin" class="mensaje-error oculto"></div>
+</div>
+
+<!-- Pantalla 3: la aplicación -->
+<main id="app" class="oculto">
   <div id="alertas" class="alertas sin-alertas"></div>
 
   <section class="panel">
@@ -206,7 +299,7 @@
         <button type="button" class="secundario" id="btnCancelar" style="display:none; margin-top:6px;">Cancelar</button>
       </div>
     </form>
-    <p class="nota">La fecha de pedido se puede dejar vacía y completarla más adelante, directamente en la tabla, cuando pidas los certificados.</p>
+    <p class="nota">La fecha de pedido se puede dejar vacía y completarla más adelante, directamente en la tabla, cuando pidas los certificados. Todo lo que se carga acá lo ven los cinco integrantes al instante.</p>
   </section>
 
   <section class="panel">
@@ -244,12 +337,24 @@
 (function () {
   "use strict";
 
-  var CLAVE_STORAGE = "certificados-notariales";
+  // ================== CONFIGURACIÓN ==================
+  // Cuando la escribanía cree su proyecto de Firebase, pegar acá la
+  // configuración para que quede fija para los cinco usuarios.
+  var FIREBASE_CONFIG = null; // ej.: { apiKey: "...", authDomain: "...", projectId: "...", appId: "..." }
+  var EMAIL_CUENTA = "";      // email de la cuenta compartida (se prellena en el ingreso)
+
+  var VERSION_SDK = "10.14.1";
+  var CLAVE_STORAGE_LOCAL = "certificados-notariales";      // datos viejos (versión sin nube), solo para migrar
+  var CLAVE_STORAGE_CONFIG = "certificados-firebase-config";
+  var CLAVE_STORAGE_EMAIL = "certificados-email-cuenta";
+  var COLECCION = "escrituras";
   var DIAS_AVISO = 3; // alerta cuando faltan 3 días o menos para el vencimiento
   var PLAZOS = { capital: 15, provincia: 30 }; // días corridos
   var NOMBRES_JURISDICCION = { capital: "Capital", provincia: "Provincia" };
 
-  var escrituras = cargar();
+  var escrituras = [];
+  var datosListos = false;
+  var fb = null; // { db, auth, fs, au } — SDK y conexiones una vez inicializado
 
   // ---------- Fechas (strings YYYY-MM-DD; aritmética a mediodía local) ----------
 
@@ -338,20 +443,229 @@
     });
   }
 
-  // ---------- Persistencia ----------
+  // ---------- Pantallas ----------
 
-  function cargar() {
-    try {
-      var crudo = localStorage.getItem(CLAVE_STORAGE);
-      var datos = crudo ? JSON.parse(crudo) : [];
-      return Array.isArray(datos) ? datos : [];
-    } catch (err) {
-      return [];
-    }
+  function mostrarPantalla(id) {
+    ["pantallaConfig", "pantallaLogin", "app"].forEach(function (p) {
+      document.getElementById(p).classList.toggle("oculto", p !== id);
+    });
+    document.getElementById("btnSalir").classList.toggle("oculto", id !== "app");
   }
 
-  function guardar() {
-    localStorage.setItem(CLAVE_STORAGE, JSON.stringify(escrituras));
+  function mostrarError(idElemento, mensaje) {
+    var el = document.getElementById(idElemento);
+    el.textContent = mensaje;
+    el.classList.toggle("oculto", !mensaje);
+  }
+
+  // ---------- Configuración de Firebase ----------
+
+  function obtenerConfig() {
+    if (FIREBASE_CONFIG && FIREBASE_CONFIG.projectId) return FIREBASE_CONFIG;
+    try {
+      var guardada = JSON.parse(localStorage.getItem(CLAVE_STORAGE_CONFIG));
+      if (guardada && guardada.projectId) return guardada;
+    } catch (err) { /* config local inválida: se ignora */ }
+    return null;
+  }
+
+  function extraerConfig(texto) {
+    // Acepta el bloque tal como lo muestra Firebase (JS con claves sin comillas) o JSON puro
+    var desde = texto.indexOf("{");
+    var hasta = texto.lastIndexOf("}");
+    if (desde === -1 || hasta === -1 || hasta <= desde) return null;
+    var objeto = texto.slice(desde, hasta + 1);
+    try {
+      var config = (new Function("return (" + objeto + ");"))();
+      if (config && typeof config === "object" && config.apiKey && config.projectId) return config;
+    } catch (err) { /* no se pudo interpretar */ }
+    return null;
+  }
+
+  document.getElementById("btnGuardarConfig").addEventListener("click", function () {
+    var config = extraerConfig(document.getElementById("textoConfig").value);
+    if (!config) {
+      mostrarError("errorConfig", "No se pudo leer la configuración. Pegá el bloque completo tal como lo muestra Firebase (tiene que incluir apiKey y projectId).");
+      return;
+    }
+    localStorage.setItem(CLAVE_STORAGE_CONFIG, JSON.stringify(config));
+    location.reload();
+  });
+
+  // ---------- Conexión con Firebase ----------
+
+  function iniciar() {
+    var config = obtenerConfig();
+    if (!config) {
+      mostrarPantalla("pantallaConfig");
+      return;
+    }
+    var base = "https://www.gstatic.com/firebasejs/" + VERSION_SDK + "/";
+    Promise.all([
+      import(base + "firebase-app.js"),
+      import(base + "firebase-auth.js"),
+      import(base + "firebase-firestore.js")
+    ]).then(function (mods) {
+      var app = mods[0].initializeApp(config);
+      fb = {
+        au: mods[1],
+        fs: mods[2],
+        auth: mods[1].getAuth(app),
+        db: mods[2].getFirestore(app)
+      };
+      fb.au.onAuthStateChanged(fb.auth, function (usuario) {
+        if (usuario) {
+          mostrarPantalla("app");
+          suscribir();
+        } else {
+          prepararLogin();
+          mostrarPantalla("pantallaLogin");
+        }
+      });
+    }).catch(function (err) {
+      mostrarPantalla("pantallaLogin");
+      document.getElementById("formLogin").classList.add("oculto");
+      mostrarError("errorLogin", "No se pudo conectar con la base de datos. Revisá la conexión a internet y recargá la página. (" + err.message + ")");
+    });
+  }
+
+  function prepararLogin() {
+    var email = EMAIL_CUENTA || localStorage.getItem(CLAVE_STORAGE_EMAIL) || "";
+    document.getElementById("emailLogin").value = email;
+    // Si el email ya es conocido, solo se pide la clave
+    document.getElementById("campoEmail").classList.toggle("oculto", !!email);
+  }
+
+  document.getElementById("formLogin").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var email = document.getElementById("emailLogin").value.trim();
+    var clave = document.getElementById("claveLogin").value;
+    if (!email) {
+      document.getElementById("campoEmail").classList.remove("oculto");
+      mostrarError("errorLogin", "Completá el email de la cuenta compartida de la escribanía.");
+      return;
+    }
+    mostrarError("errorLogin", "");
+    var boton = document.getElementById("btnIngresar");
+    boton.disabled = true;
+    boton.textContent = "Ingresando…";
+    fb.au.signInWithEmailAndPassword(fb.auth, email, clave).then(function () {
+      localStorage.setItem(CLAVE_STORAGE_EMAIL, email);
+      document.getElementById("claveLogin").value = "";
+    }).catch(function (err) {
+      var codigo = err && err.code || "";
+      var mensaje;
+      if (codigo.indexOf("wrong-password") !== -1 || codigo.indexOf("invalid-credential") !== -1 || codigo.indexOf("invalid-login-credentials") !== -1) {
+        mensaje = "La clave no es correcta. Probá de nuevo.";
+      } else if (codigo.indexOf("user-not-found") !== -1 || codigo.indexOf("invalid-email") !== -1) {
+        mensaje = "No existe una cuenta con ese email. Revisá el email de la cuenta compartida.";
+        document.getElementById("campoEmail").classList.remove("oculto");
+      } else if (codigo.indexOf("too-many-requests") !== -1) {
+        mensaje = "Demasiados intentos fallidos. Esperá unos minutos y volvé a probar.";
+      } else if (codigo.indexOf("network") !== -1) {
+        mensaje = "Sin conexión a internet. Revisá la conexión y volvé a probar.";
+      } else {
+        mensaje = "No se pudo ingresar (" + (codigo || err.message) + ").";
+      }
+      mostrarError("errorLogin", mensaje);
+    }).finally(function () {
+      boton.disabled = false;
+      boton.textContent = "Ingresar";
+    });
+  });
+
+  document.getElementById("btnSalir").addEventListener("click", function () {
+    if (confirm("¿Salir? Para volver a entrar vas a necesitar la clave de la escribanía.")) {
+      fb.au.signOut(fb.auth);
+    }
+  });
+
+  // ---------- Datos compartidos (Firestore) ----------
+
+  function suscribir() {
+    datosListos = false;
+    render();
+    fb.fs.onSnapshot(fb.fs.collection(fb.db, COLECCION), function (snap) {
+      escrituras = snap.docs.map(function (d) {
+        var datos = d.data();
+        return {
+          id: d.id,
+          nombre: datos.nombre || "",
+          jurisdiccion: PLAZOS[datos.jurisdiccion] ? datos.jurisdiccion : "capital",
+          fechaEscritura: datos.fechaEscritura || hoyISO(),
+          fechaPedido: datos.fechaPedido || null
+        };
+      });
+      var primeraCarga = !datosListos;
+      datosListos = true;
+      render();
+      if (primeraCarga) ofrecerMigracion();
+    }, function (err) {
+      mostrarError("errorLogin", "");
+      alert("No se pudieron leer los datos compartidos: " + err.message);
+    });
+  }
+
+  function datosDe(e) {
+    return {
+      nombre: e.nombre,
+      jurisdiccion: e.jurisdiccion,
+      fechaEscritura: e.fechaEscritura,
+      fechaPedido: e.fechaPedido || null
+    };
+  }
+
+  function agregarEscritura(datos) {
+    return fb.fs.addDoc(fb.fs.collection(fb.db, COLECCION), datos).catch(avisarErrorGuardado);
+  }
+
+  function actualizarEscritura(id, cambios) {
+    return fb.fs.updateDoc(fb.fs.doc(fb.db, COLECCION, id), cambios).catch(avisarErrorGuardado);
+  }
+
+  function eliminarEscritura(id) {
+    return fb.fs.deleteDoc(fb.fs.doc(fb.db, COLECCION, id)).catch(avisarErrorGuardado);
+  }
+
+  function reemplazarTodo(lista) {
+    var batch = fb.fs.writeBatch(fb.db);
+    escrituras.forEach(function (e) {
+      batch.delete(fb.fs.doc(fb.db, COLECCION, e.id));
+    });
+    lista.forEach(function (datos) {
+      batch.set(fb.fs.doc(fb.fs.collection(fb.db, COLECCION)), datos);
+    });
+    return batch.commit().catch(avisarErrorGuardado);
+  }
+
+  function avisarErrorGuardado(err) {
+    alert("No se pudo guardar el cambio: " + err.message + "\nRevisá la conexión a internet y volvé a intentar.");
+  }
+
+  // Datos de la versión anterior (guardados solo en este navegador): se ofrecen subir una vez
+  function ofrecerMigracion() {
+    if (escrituras.length > 0) return;
+    var viejos;
+    try {
+      viejos = JSON.parse(localStorage.getItem(CLAVE_STORAGE_LOCAL));
+    } catch (err) { return; }
+    if (!Array.isArray(viejos) || viejos.length === 0) return;
+    var validos = viejos.filter(function (x) {
+      return x && typeof x.nombre === "string" && PLAZOS[x.jurisdiccion] && /^\d{4}-\d{2}-\d{2}$/.test(x.fechaEscritura || "");
+    });
+    if (validos.length === 0) return;
+    if (confirm("Este navegador tiene " + validos.length + " escritura(s) guardadas de la versión anterior. ¿Subirlas a la base compartida para que las vean los cinco?")) {
+      Promise.all(validos.map(function (x) {
+        return agregarEscritura({
+          nombre: x.nombre,
+          jurisdiccion: x.jurisdiccion,
+          fechaEscritura: x.fechaEscritura,
+          fechaPedido: x.fechaPedido || null
+        });
+      })).then(function () {
+        localStorage.removeItem(CLAVE_STORAGE_LOCAL);
+      });
+    }
   }
 
   // ---------- Render ----------
@@ -399,7 +713,10 @@
 
     if (escrituras.length === 0) {
       var trVacio = document.createElement("tr");
-      var tdVacio = crearElemento("td", "vacio", "Todavía no hay escrituras cargadas. Agregá la primera con el formulario de arriba.");
+      var texto = datosListos
+        ? "Todavía no hay escrituras cargadas. Agregá la primera con el formulario de arriba."
+        : "Cargando datos compartidos…";
+      var tdVacio = crearElemento("td", "vacio", texto);
       tdVacio.colSpan = 9;
       trVacio.appendChild(tdVacio);
       cuerpo.appendChild(trVacio);
@@ -425,9 +742,7 @@
       inputPedido.value = e.fechaPedido || "";
       inputPedido.setAttribute("aria-label", "Fecha de pedido de " + e.nombre);
       inputPedido.addEventListener("change", function () {
-        e.fechaPedido = inputPedido.value || null;
-        guardar();
-        render();
+        actualizarEscritura(e.id, { fechaPedido: inputPedido.value || null });
       });
       tdPedido.appendChild(inputPedido);
       tr.appendChild(tdPedido);
@@ -460,11 +775,9 @@
       var btnEliminar = crearElemento("button", "peligro", "Eliminar");
       btnEliminar.type = "button";
       btnEliminar.addEventListener("click", function () {
-        if (confirm("¿Eliminar la escritura «" + e.nombre + "»?")) {
-          escrituras = escrituras.filter(function (x) { return x.id !== e.id; });
+        if (confirm("¿Eliminar la escritura «" + e.nombre + "» para todos los usuarios?")) {
           if (idEnEdicion === e.id) cancelarEdicion();
-          guardar();
-          render();
+          eliminarEscritura(e.id);
         }
       });
       tdAcciones.appendChild(btnEliminar);
@@ -542,21 +855,17 @@
     if (!datos.nombre || !datos.fechaEscritura) return;
 
     if (idEnEdicion !== null) {
-      var e = escrituras.find(function (x) { return x.id === idEnEdicion; });
-      if (e) Object.assign(e, datos);
+      actualizarEscritura(idEnEdicion, datos);
     } else {
-      datos.id = Date.now() + "-" + Math.random().toString(36).slice(2, 8);
-      escrituras.push(datos);
+      agregarEscritura(datos);
     }
-    guardar();
     cancelarEdicion();
-    render();
   });
 
   // ---------- Exportar / Importar ----------
 
   document.getElementById("btnExportar").addEventListener("click", function () {
-    var blob = new Blob([JSON.stringify(escrituras, null, 2)], { type: "application/json" });
+    var blob = new Blob([JSON.stringify(escrituras.map(datosDe), null, 2)], { type: "application/json" });
     var a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = "certificados-notariales-" + hoyISO() + ".json";
@@ -579,12 +888,16 @@
         var validas = datos.filter(function (x) {
           return x && typeof x.nombre === "string" && PLAZOS[x.jurisdiccion] && /^\d{4}-\d{2}-\d{2}$/.test(x.fechaEscritura || "");
         });
-        if (!confirm("Se van a importar " + validas.length + " escrituras y se reemplazará el listado actual. ¿Continuar?")) return;
-        validas.forEach(function (x, i) { if (!x.id) x.id = Date.now() + "-imp" + i; });
-        escrituras = validas;
-        guardar();
+        if (!confirm("Se van a importar " + validas.length + " escrituras y se reemplazará el listado compartido que ven los cinco. ¿Continuar?")) return;
+        reemplazarTodo(validas.map(function (x) {
+          return {
+            nombre: x.nombre,
+            jurisdiccion: x.jurisdiccion,
+            fechaEscritura: x.fechaEscritura,
+            fechaPedido: x.fechaPedido || null
+          };
+        }));
         cancelarEdicion();
-        render();
       } catch (err) {
         alert("No se pudo importar el archivo: no es un respaldo válido.");
       }
@@ -595,7 +908,7 @@
 
   // ---------- Inicio ----------
 
-  render();
+  iniciar();
 })();
 </script>
 
