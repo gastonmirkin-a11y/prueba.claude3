@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Certificados Notariales — Seguimiento</title>
+<title>Escribanía — Seguimiento notarial</title>
 <style>
   :root {
     --azul: #1e3a5f;
@@ -42,13 +42,14 @@
   }
   header h1 { margin: 0; font-size: 1.45rem; font-weight: 600; }
   header p { margin: 4px 0 0; font-size: 0.9rem; opacity: 0.85; }
-  #btnSalir {
+  .acciones-header { display: flex; gap: 8px; align-items: center; }
+  #btnSalir, #btnMenu {
     background: rgba(255,255,255,0.15);
     color: var(--blanco);
     font-size: 0.85rem;
     padding: 7px 14px;
   }
-  #btnSalir:hover { background: rgba(255,255,255,0.28); }
+  #btnSalir:hover, #btnMenu:hover { background: rgba(255,255,255,0.28); }
   main { max-width: 1200px; margin: 0 auto; padding: 20px 24px 60px; }
 
   .alertas {
@@ -93,23 +94,46 @@
     margin-top: 12px;
     font-size: 0.92rem;
   }
-  .mensaje-info {
-    background: var(--gris-fondo);
-    color: var(--gris-texto);
-    border-radius: 6px;
-    padding: 10px 14px;
-    margin-top: 12px;
-    font-size: 0.92rem;
-  }
   .oculto { display: none !important; }
 
-  form#formEscritura {
+  /* ----- Menú de secciones ----- */
+  #pantallaMenu { max-width: 680px; margin: 40px auto; display: grid; gap: 16px; }
+  #pantallaMenu .intro { text-align: center; color: var(--gris-texto); margin: 0 0 6px; }
+  .menu-boton {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    width: 100%;
+    text-align: left;
+    background: var(--blanco);
+    border: 1px solid var(--gris-borde);
+    border-radius: 12px;
+    padding: 24px 26px;
+    cursor: pointer;
+    color: var(--azul);
+  }
+  .menu-boton:hover { border-color: var(--azul-claro); background: #f7f9fc; }
+  .menu-boton .icono { font-size: 2.2rem; line-height: 1; }
+  .menu-boton .texto { flex: 1; }
+  .menu-boton .titulo { font-size: 1.15rem; font-weight: 700; }
+  .menu-boton .sub { display: block; font-weight: 400; font-size: 0.85rem; color: var(--gris-texto); margin-top: 4px; }
+  .contador {
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .contador.hay { background: var(--rojo); color: #fff; }
+  .contador.cero { background: var(--verde-fondo); color: var(--verde); }
+
+  form.form-grid {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr 1fr auto;
     gap: 12px;
     align-items: end;
   }
-  @media (max-width: 900px) { form#formEscritura { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 900px) { form.form-grid { grid-template-columns: 1fr 1fr; } }
   .campo label {
     display: block;
     font-size: 0.8rem;
@@ -189,6 +213,13 @@
     border-radius: 5px;
     font-size: 0.85rem;
   }
+  td input.entrada {
+    width: 92px;
+    padding: 5px 6px;
+    border: 1px solid var(--gris-borde);
+    border-radius: 5px;
+    font-size: 0.85rem;
+  }
 
   .badge {
     display: inline-block;
@@ -203,6 +234,7 @@
   .badge.vigente { background: var(--verde-fondo); color: var(--verde); }
   .badge.por-vencer { background: var(--rojo); color: var(--blanco); }
   .badge.vencido { background: var(--rojo-oscuro); color: var(--blanco); }
+  .badge.presentada { background: #e7edf5; color: var(--azul); border: 1px solid #b9c9dd; }
   .advertencia-escritura {
     display: block;
     margin-top: 4px;
@@ -223,39 +255,36 @@
 
 <header>
   <div>
-    <h1>📋 Certificados Notariales</h1>
-    <p>Seguimiento de pedidos y vencimientos — Capital: 15 días corridos · Provincia: 30 días corridos</p>
+    <h1 id="tituloHeader">🗂️ Escribanía</h1>
+    <p id="subtituloHeader">Seguimiento notarial</p>
   </div>
-  <button type="button" id="btnSalir" class="oculto">Salir</button>
+  <div class="acciones-header">
+    <button type="button" id="btnMenu" class="oculto">← Menú</button>
+    <button type="button" id="btnSalir" class="oculto">Salir</button>
+  </div>
 </header>
 
-<!-- Pantalla 1: falta configurar Firebase -->
+<!-- Pantalla: falta configurar Firebase -->
 <div id="pantallaConfig" class="tarjeta oculto">
   <h2>⚙️ Falta conectar la base de datos compartida</h2>
   <p>Para que los cinco integrantes de la escribanía vean la misma información, la página necesita conectarse a una base de datos gratuita de Google (Firebase). Es una configuración que se hace <strong>una sola vez</strong>:</p>
   <ol>
     <li>Entrá a <a href="https://console.firebase.google.com" target="_blank" rel="noopener">console.firebase.google.com</a> con tu cuenta de Google y creá un proyecto (podés desactivar Google Analytics).</li>
-    <li>En <strong>Compilación → Authentication</strong>: botón «Comenzar», habilitá <strong>Correo electrónico/contraseña</strong> y en la pestaña «Users» creá <strong>un</strong> usuario: un email (puede ser inventado, ej. <code>escribania@miestudio.com</code>) y la clave compartida que van a usar los cinco.</li>
-    <li>En <strong>Compilación → Firestore Database</strong>: creá la base de datos (modo producción, ubicación <code>southamerica-east1</code>). Luego, en la pestaña <strong>Reglas</strong>, reemplazá todo por:<br>
+    <li>En <strong>Authentication</strong>: habilitá <strong>Correo electrónico/contraseña</strong> y en «Users» creá <strong>un</strong> usuario: un email (puede ser inventado) y la clave compartida que van a usar los cinco.</li>
+    <li>En <strong>Firestore Database</strong>: creá la base de datos (modo producción, ubicación <code>southamerica-east1</code>). Luego, en la pestaña <strong>Reglas</strong>, reemplazá todo por:<br>
       <code>rules_version = '2';<br>service cloud.firestore {<br>&nbsp;&nbsp;match /databases/{database}/documents {<br>&nbsp;&nbsp;&nbsp;&nbsp;match /{document=**} {<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;allow read, write: if request.auth != null;<br>&nbsp;&nbsp;&nbsp;&nbsp;}<br>&nbsp;&nbsp;}<br>}</code><br>
       y publicá.</li>
-    <li>En <strong>Configuración del proyecto (⚙️) → Tus apps</strong>: agregá una app <strong>Web (&lt;/&gt;)</strong>, ponele un nombre y copiá el bloque <code>firebaseConfig</code> que te muestra.</li>
+    <li>En <strong>Configuración del proyecto → Tus apps</strong>: agregá una app <strong>Web (&lt;/&gt;)</strong> y copiá el bloque <code>firebaseConfig</code> que te muestra.</li>
     <li>Pegá ese bloque acá abajo y tocá «Guardar configuración».</li>
   </ol>
-  <textarea id="textoConfig" placeholder="Pegá acá el bloque firebaseConfig, por ejemplo:
-const firebaseConfig = {
-  apiKey: &quot;...&quot;,
-  authDomain: &quot;...&quot;,
-  projectId: &quot;...&quot;,
-  ...
-};"></textarea>
+  <textarea id="textoConfig" placeholder="Pegá acá el bloque firebaseConfig"></textarea>
   <div style="margin-top:10px;">
     <button type="button" class="primario" id="btnGuardarConfig">Guardar configuración</button>
   </div>
   <div id="errorConfig" class="mensaje-error oculto"></div>
 </div>
 
-<!-- Pantalla 2: ingreso con la clave compartida -->
+<!-- Pantalla: ingreso con la clave compartida -->
 <div id="pantallaLogin" class="tarjeta oculto">
   <h2>🔐 Ingreso a la escribanía</h2>
   <p>Escribí la clave compartida de la escribanía. Queda guardada en este navegador: no hace falta volver a escribirla cada vez.</p>
@@ -275,69 +304,156 @@ const firebaseConfig = {
   <div id="errorLogin" class="mensaje-error oculto"></div>
 </div>
 
-<!-- Pantalla 3: la aplicación -->
+<!-- Aplicación (una vez autenticado) -->
 <main id="app" class="oculto">
-  <div id="alertas" class="alertas sin-alertas"></div>
 
-  <section class="panel">
-    <h2 id="tituloForm">Agregar escritura</h2>
-    <form id="formEscritura">
-      <div class="campo">
-        <label for="nombre">Escritura / Carátula</label>
-        <input type="text" id="nombre" required placeholder="Ej.: Compraventa Pérez a García">
-      </div>
-      <div class="campo">
-        <label for="jurisdiccion">Jurisdicción</label>
-        <select id="jurisdiccion">
-          <option value="capital">Capital (15 días)</option>
-          <option value="provincia">Provincia (30 días)</option>
-        </select>
-      </div>
-      <div class="campo">
-        <label for="fechaEscritura">Fecha de la escritura</label>
-        <input type="date" id="fechaEscritura" required>
-      </div>
-      <div class="campo">
-        <label for="fechaPedido">Fecha de pedido (opcional)</label>
-        <input type="date" id="fechaPedido">
-      </div>
-      <div class="campo">
-        <button type="submit" class="primario" id="btnGuardar">Agregar</button>
-        <button type="button" class="secundario" id="btnCancelar" style="display:none; margin-top:6px;">Cancelar</button>
-      </div>
-    </form>
-    <p class="nota">La fecha de pedido se puede dejar vacía y completarla más adelante, directamente en la tabla, cuando pidas los certificados. Todo lo que se carga acá lo ven los cinco integrantes al instante.</p>
-  </section>
+  <!-- Menú de secciones -->
+  <div id="pantallaMenu">
+    <p class="intro">¿Qué querés controlar hoy?</p>
+    <button type="button" class="menu-boton" id="menuCertificados">
+      <span class="icono">📋</span>
+      <span class="texto">
+        <span class="titulo">Certificados</span>
+        <span class="sub">Pedidos y vencimientos de certificados (Capital 15 días · Provincia 30 días).</span>
+      </span>
+      <span class="contador cero" id="contadorCert">✓</span>
+    </button>
+    <button type="button" class="menu-boton" id="menuInscripciones">
+      <span class="icono">🏛️</span>
+      <span class="texto">
+        <span class="titulo">Inscripción de escrituras</span>
+        <span class="sub">Escrituras a inscribir en el Registro de la Propiedad Inmueble (45 días desde el otorgamiento).</span>
+      </span>
+      <span class="contador cero" id="contadorInsc">✓</span>
+    </button>
+  </div>
 
-  <section class="panel">
-    <div class="barra-tabla">
-      <h2 style="margin:0;">Escrituras</h2>
-      <div class="acciones-globales">
-        <button type="button" class="secundario" id="btnExportar">Exportar respaldo</button>
-        <button type="button" class="secundario" id="btnImportar">Importar respaldo</button>
-        <input type="file" id="inputImportar" accept=".json,application/json" style="display:none;">
+  <!-- Sección Certificados -->
+  <div id="seccionCertificados" class="oculto">
+    <div id="alertasCert" class="alertas sin-alertas"></div>
+
+    <section class="panel">
+      <h2 id="tituloFormCert">Agregar escritura</h2>
+      <form id="formEscritura" class="form-grid">
+        <div class="campo">
+          <label for="nombreCert">Escritura / Carátula</label>
+          <input type="text" id="nombreCert" required placeholder="Ej.: Compraventa Pérez a García">
+        </div>
+        <div class="campo">
+          <label for="jurisdiccion">Jurisdicción</label>
+          <select id="jurisdiccion">
+            <option value="capital">Capital (15 días)</option>
+            <option value="provincia">Provincia (30 días)</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="fechaEscritura">Fecha de la escritura</label>
+          <input type="date" id="fechaEscritura" required>
+        </div>
+        <div class="campo">
+          <label for="fechaPedido">Fecha de pedido (opcional)</label>
+          <input type="date" id="fechaPedido">
+        </div>
+        <div class="campo">
+          <button type="submit" class="primario" id="btnGuardarCert">Agregar</button>
+          <button type="button" class="secundario" id="btnCancelarCert" style="display:none; margin-top:6px;">Cancelar</button>
+        </div>
+      </form>
+      <p class="nota">La fecha de pedido se puede dejar vacía y completarla más adelante, directamente en la tabla, cuando pidas los certificados. Todo lo que se carga acá lo ven los cinco integrantes al instante.</p>
+    </section>
+
+    <section class="panel">
+      <div class="barra-tabla">
+        <h2 style="margin:0;">Certificados</h2>
+        <div class="acciones-globales">
+          <button type="button" class="secundario" id="btnExportarCert">Exportar respaldo</button>
+          <button type="button" class="secundario" id="btnImportarCert">Importar respaldo</button>
+          <input type="file" id="inputImportarCert" accept=".json,application/json" style="display:none;">
+        </div>
       </div>
-    </div>
-    <div class="contenedor-tabla">
-      <table>
-        <thead>
-          <tr>
-            <th>Escritura</th>
-            <th>Jurisdicción</th>
-            <th>Fecha escritura</th>
-            <th>Pedir antes del</th>
-            <th>Fecha de pedido</th>
-            <th>Vencimiento</th>
-            <th>Días restantes</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="cuerpoTabla"></tbody>
-      </table>
-    </div>
-    <p class="nota">💡 El botón «📅 Recordatorio» crea un evento en tu Google Calendar (pedir los certificados, o aviso 3 días antes del vencimiento). Google te avisa por email o en el celular según la configuración de tu calendario.</p>
-  </section>
+      <div class="contenedor-tabla">
+        <table>
+          <thead>
+            <tr>
+              <th>Escritura</th>
+              <th>Jurisdicción</th>
+              <th>Fecha escritura</th>
+              <th>Pedir antes del</th>
+              <th>Fecha de pedido</th>
+              <th>Vencimiento</th>
+              <th>Días restantes</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="cuerpoTablaCert"></tbody>
+        </table>
+      </div>
+      <p class="nota">💡 El botón «📅 Recordatorio» crea un evento en tu Google Calendar. Google te avisa por email o en el celular según la configuración de tu calendario.</p>
+    </section>
+  </div>
+
+  <!-- Sección Inscripción de escrituras -->
+  <div id="seccionInscripciones" class="oculto">
+    <div id="alertasInsc" class="alertas sin-alertas"></div>
+
+    <section class="panel">
+      <h2 id="tituloFormInsc">Agregar escritura a inscribir</h2>
+      <form id="formInscripcion" class="form-grid">
+        <div class="campo">
+          <label for="nombreInsc">Escritura / Carátula</label>
+          <input type="text" id="nombreInsc" required placeholder="Ej.: Compraventa Pérez a García">
+        </div>
+        <div class="campo">
+          <label for="fechaOtorgamiento">Fecha de otorgamiento</label>
+          <input type="date" id="fechaOtorgamiento" required>
+        </div>
+        <div class="campo">
+          <label for="fechaPresentacion">Fecha de presentación (opcional)</label>
+          <input type="date" id="fechaPresentacion">
+        </div>
+        <div class="campo">
+          <label for="numeroEntrada">N° de entrada (opcional)</label>
+          <input type="text" id="numeroEntrada" placeholder="Ej.: 123456/26">
+        </div>
+        <div class="campo">
+          <button type="submit" class="primario" id="btnGuardarInsc">Agregar</button>
+          <button type="button" class="secundario" id="btnCancelarInsc" style="display:none; margin-top:6px;">Cancelar</button>
+        </div>
+      </form>
+      <p class="nota">El plazo para inscribir es de <strong>45 días corridos</strong> contados desde el día siguiente al otorgamiento. Completá la fecha de presentación y el N° de entrada cuando la presentes en el Registro; ahí la escritura sale de las alertas.</p>
+    </section>
+
+    <section class="panel">
+      <div class="barra-tabla">
+        <h2 style="margin:0;">Escrituras a inscribir</h2>
+        <div class="acciones-globales">
+          <button type="button" class="secundario" id="btnExportarInsc">Exportar respaldo</button>
+          <button type="button" class="secundario" id="btnImportarInsc">Importar respaldo</button>
+          <input type="file" id="inputImportarInsc" accept=".json,application/json" style="display:none;">
+        </div>
+      </div>
+      <div class="contenedor-tabla">
+        <table>
+          <thead>
+            <tr>
+              <th>Escritura</th>
+              <th>Fecha otorgamiento</th>
+              <th>Inscribir antes del</th>
+              <th>Días restantes</th>
+              <th>Fecha presentación</th>
+              <th>N° entrada</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="cuerpoTablaInsc"></tbody>
+        </table>
+      </div>
+      <p class="nota">💡 El botón «📅 Recordatorio» crea un evento en tu Google Calendar 3 días antes del vencimiento del plazo de inscripción.</p>
+    </section>
+  </div>
+
 </main>
 
 <script>
@@ -345,8 +461,6 @@ const firebaseConfig = {
   "use strict";
 
   // ================== CONFIGURACIÓN ==================
-  // Cuando la escribanía cree su proyecto de Firebase, pegar acá la
-  // configuración para que quede fija para los cinco usuarios.
   var FIREBASE_CONFIG = {
     apiKey: "AIzaSyDTzPvAfpHDAYsGEHvFwSxiACuwroDI67k",
     authDomain: "certificados-fb921.firebaseapp.com",
@@ -355,19 +469,23 @@ const firebaseConfig = {
     messagingSenderId: "577862100762",
     appId: "1:577862100762:web:0ceb70ab62af768ae6aea3"
   };
-  var EMAIL_CUENTA = "escribania@escribaniagm.com.ar"; // email de la cuenta compartida (se prellena en el ingreso)
+  var EMAIL_CUENTA = "escribania@escribaniagm.com.ar"; // se prellena en el ingreso
 
   var VERSION_SDK = "10.14.1";
   var CLAVE_STORAGE_LOCAL = "certificados-notariales";      // datos viejos (versión sin nube), solo para migrar
   var CLAVE_STORAGE_CONFIG = "certificados-firebase-config";
   var CLAVE_STORAGE_EMAIL = "certificados-email-cuenta";
-  var COLECCION = "escrituras";
+  var COLECCION_CERT = "escrituras";      // certificados (colección existente, no se renombra)
+  var COLECCION_INSC = "inscripciones";   // escrituras a inscribir
   var DIAS_AVISO = 3; // alerta cuando faltan 3 días o menos para el vencimiento
-  var PLAZOS = { capital: 15, provincia: 30 }; // días corridos
+  var PLAZOS = { capital: 15, provincia: 30 }; // certificados, días corridos
   var NOMBRES_JURISDICCION = { capital: "Capital", provincia: "Provincia" };
+  var PLAZO_INSC = 45; // inscripción: días corridos desde el día siguiente al otorgamiento
 
-  var escrituras = [];
-  var datosListos = false;
+  var certificados = [];
+  var inscripciones = [];
+  var certListos = false;
+  var inscListos = false;
   var fb = null; // { db, auth, fs, au } — SDK y conexiones una vez inicializado
 
   // ---------- Fechas (strings YYYY-MM-DD; aritmética a mediodía local) ----------
@@ -376,36 +494,30 @@ const firebaseConfig = {
     var p = iso.split("-");
     return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]), 12, 0, 0);
   }
-
   function aISO(fecha) {
     var m = String(fecha.getMonth() + 1).padStart(2, "0");
     var d = String(fecha.getDate()).padStart(2, "0");
     return fecha.getFullYear() + "-" + m + "-" + d;
   }
-
   function sumarDias(iso, dias) {
     var f = aFecha(iso);
     f.setDate(f.getDate() + dias);
     return aISO(f);
   }
-
-  function hoyISO() {
-    return aISO(new Date());
-  }
-
+  function hoyISO() { return aISO(new Date()); }
   function diferenciaDias(desdeISO, hastaISO) {
     return Math.round((aFecha(hastaISO) - aFecha(desdeISO)) / 86400000);
   }
-
   function formatear(iso) {
     if (!iso) return "—";
     var p = iso.split("-");
     return p[2] + "/" + p[1] + "/" + p[0];
   }
+  function esFechaValida(iso) { return /^\d{4}-\d{2}-\d{2}$/.test(iso || ""); }
 
-  // ---------- Lógica de negocio ----------
+  // ---------- Lógica de negocio: CERTIFICADOS ----------
 
-  function calcular(e) {
+  function calcularCert(e) {
     var plazo = PLAZOS[e.jurisdiccion];
     var hoy = hoyISO();
     var info = {
@@ -415,55 +527,128 @@ const firebaseConfig = {
       diasRestantes: null,
       estado: null,
       textoEstado: null,
-      noLlega: false // el certificado vence antes de la fecha de escritura
+      noLlega: false
     };
     if (e.fechaPedido) {
       info.vencimiento = sumarDias(e.fechaPedido, plazo - 1);
       info.diasRestantes = diferenciaDias(hoy, info.vencimiento);
       info.noLlega = diferenciaDias(info.vencimiento, e.fechaEscritura) > 0;
-      if (info.diasRestantes < 0) {
-        info.estado = "vencido";
-        info.textoEstado = "Vencido";
-      } else if (info.diasRestantes <= DIAS_AVISO) {
-        info.estado = "por-vencer";
-        info.textoEstado = info.diasRestantes === 0 ? "¡Vence hoy!" : "Por vencer";
-      } else {
-        info.estado = "vigente";
-        info.textoEstado = "Vigente";
-      }
+      if (info.diasRestantes < 0) { info.estado = "vencido"; info.textoEstado = "Vencido"; }
+      else if (info.diasRestantes <= DIAS_AVISO) { info.estado = "por-vencer"; info.textoEstado = info.diasRestantes === 0 ? "¡Vence hoy!" : "Por vencer"; }
+      else { info.estado = "vigente"; info.textoEstado = "Vigente"; }
     } else {
-      if (diferenciaDias(info.fechaSugerida, hoy) >= 0) {
-        info.estado = "hay-que-pedir";
-        info.textoEstado = "Hay que pedir";
-      } else {
-        info.estado = "pendiente";
-        info.textoEstado = "Pendiente de pedir";
-      }
+      if (diferenciaDias(info.fechaSugerida, hoy) >= 0) { info.estado = "hay-que-pedir"; info.textoEstado = "Hay que pedir"; }
+      else { info.estado = "pendiente"; info.textoEstado = "Pendiente de pedir"; }
     }
     return info;
   }
 
-  var ORDEN_ESTADO = { "vencido": 0, "por-vencer": 1, "hay-que-pedir": 2, "vigente": 3, "pendiente": 4 };
+  var ORDEN_CERT = { "vencido": 0, "por-vencer": 1, "hay-que-pedir": 2, "vigente": 3, "pendiente": 4 };
 
-  function ordenadas() {
-    return escrituras.slice().sort(function (a, b) {
-      var ia = calcular(a), ib = calcular(b);
-      if (ORDEN_ESTADO[ia.estado] !== ORDEN_ESTADO[ib.estado]) {
-        return ORDEN_ESTADO[ia.estado] - ORDEN_ESTADO[ib.estado];
-      }
-      var fa = ia.vencimiento || ia.fechaSugerida;
-      var fb = ib.vencimiento || ib.fechaSugerida;
-      return fa < fb ? -1 : fa > fb ? 1 : 0;
+  function certOrdenados() {
+    return certificados.slice().sort(function (a, b) {
+      var ia = calcularCert(a), ib = calcularCert(b);
+      if (ORDEN_CERT[ia.estado] !== ORDEN_CERT[ib.estado]) return ORDEN_CERT[ia.estado] - ORDEN_CERT[ib.estado];
+      var fa = ia.vencimiento || ia.fechaSugerida, fb2 = ib.vencimiento || ib.fechaSugerida;
+      return fa < fb2 ? -1 : fa > fb2 ? 1 : 0;
     });
   }
 
-  // ---------- Pantallas ----------
+  function alertasCert() {
+    var urgentes = [];
+    certificados.forEach(function (e) {
+      var info = calcularCert(e);
+      if (info.estado === "vencido") {
+        urgentes.push("«" + e.nombre + "»: los certificados VENCIERON el " + formatear(info.vencimiento) + ". Hay que pedirlos de nuevo.");
+      } else if (info.estado === "por-vencer") {
+        var cuando = info.diasRestantes === 0 ? "HOY" : (info.diasRestantes === 1 ? "mañana" : "en " + info.diasRestantes + " días");
+        urgentes.push("«" + e.nombre + "»: los certificados vencen " + cuando + " (" + formatear(info.vencimiento) + ").");
+      } else if (info.estado === "hay-que-pedir") {
+        urgentes.push("«" + e.nombre + "»: ya hay que pedir los certificados (fecha límite sugerida: " + formatear(info.fechaSugerida) + ", escritura el " + formatear(e.fechaEscritura) + ").");
+      }
+      if (info.noLlega && info.estado !== "vencido") {
+        urgentes.push("«" + e.nombre + "»: atención, los certificados vencen el " + formatear(info.vencimiento) + ", ANTES de la escritura (" + formatear(e.fechaEscritura) + "). Habrá que volver a pedirlos.");
+      }
+    });
+    return urgentes;
+  }
+
+  // ---------- Lógica de negocio: INSCRIPCIONES ----------
+
+  function calcularInsc(e) {
+    var hoy = hoyISO();
+    var info = {
+      vencimiento: sumarDias(e.fechaOtorgamiento, PLAZO_INSC), // día siguiente = día 1 → +45
+      diasRestantes: null,
+      estado: null,
+      textoEstado: null
+    };
+    info.diasRestantes = diferenciaDias(hoy, info.vencimiento);
+    if (e.fechaPresentacion) {
+      info.estado = "presentada"; info.textoEstado = "Presentada";
+    } else if (info.diasRestantes < 0) {
+      info.estado = "vencido"; info.textoEstado = "Fuera de plazo";
+    } else if (info.diasRestantes <= DIAS_AVISO) {
+      info.estado = "por-vencer"; info.textoEstado = info.diasRestantes === 0 ? "¡Vence hoy!" : "Por vencer";
+    } else {
+      info.estado = "vigente"; info.textoEstado = "En plazo";
+    }
+    return info;
+  }
+
+  var ORDEN_INSC = { "vencido": 0, "por-vencer": 1, "vigente": 2, "presentada": 3 };
+
+  function inscOrdenadas() {
+    return inscripciones.slice().sort(function (a, b) {
+      var ia = calcularInsc(a), ib = calcularInsc(b);
+      if (ORDEN_INSC[ia.estado] !== ORDEN_INSC[ib.estado]) return ORDEN_INSC[ia.estado] - ORDEN_INSC[ib.estado];
+      return ia.vencimiento < ib.vencimiento ? -1 : ia.vencimiento > ib.vencimiento ? 1 : 0;
+    });
+  }
+
+  function alertasInsc() {
+    var urgentes = [];
+    inscripciones.forEach(function (e) {
+      var info = calcularInsc(e);
+      if (info.estado === "vencido") {
+        urgentes.push("«" + e.nombre + "»: se pasó el plazo de 45 días para inscribir (vencía el " + formatear(info.vencimiento) + ").");
+      } else if (info.estado === "por-vencer") {
+        var cuando = info.diasRestantes === 0 ? "HOY" : (info.diasRestantes === 1 ? "mañana" : "en " + info.diasRestantes + " días");
+        urgentes.push("«" + e.nombre + "»: hay que inscribir la escritura antes del " + formatear(info.vencimiento) + " (vence " + cuando + ").");
+      }
+    });
+    return urgentes;
+  }
+
+  // ---------- Pantallas y navegación ----------
 
   function mostrarPantalla(id) {
     ["pantallaConfig", "pantallaLogin", "app"].forEach(function (p) {
       document.getElementById(p).classList.toggle("oculto", p !== id);
     });
     document.getElementById("btnSalir").classList.toggle("oculto", id !== "app");
+    if (id === "app") mostrarSeccion("menu");
+    else document.getElementById("btnMenu").classList.add("oculto");
+  }
+
+  function mostrarSeccion(nombre) {
+    document.getElementById("pantallaMenu").classList.toggle("oculto", nombre !== "menu");
+    document.getElementById("seccionCertificados").classList.toggle("oculto", nombre !== "certificados");
+    document.getElementById("seccionInscripciones").classList.toggle("oculto", nombre !== "inscripciones");
+    document.getElementById("btnMenu").classList.toggle("oculto", nombre === "menu");
+    var titulo = document.getElementById("tituloHeader");
+    var sub = document.getElementById("subtituloHeader");
+    if (nombre === "certificados") {
+      titulo.textContent = "📋 Certificados";
+      sub.textContent = "Pedidos y vencimientos — Capital: 15 días corridos · Provincia: 30 días corridos";
+    } else if (nombre === "inscripciones") {
+      titulo.textContent = "🏛️ Inscripción de escrituras";
+      sub.textContent = "Plazo para inscribir en el Registro: 45 días corridos desde el otorgamiento";
+    } else {
+      titulo.textContent = "🗂️ Escribanía";
+      sub.textContent = "Seguimiento notarial";
+    }
+    render();
   }
 
   function mostrarError(idElemento, mensaje) {
@@ -471,6 +656,10 @@ const firebaseConfig = {
     el.textContent = mensaje;
     el.classList.toggle("oculto", !mensaje);
   }
+
+  document.getElementById("menuCertificados").addEventListener("click", function () { mostrarSeccion("certificados"); });
+  document.getElementById("menuInscripciones").addEventListener("click", function () { mostrarSeccion("inscripciones"); });
+  document.getElementById("btnMenu").addEventListener("click", function () { mostrarSeccion("menu"); });
 
   // ---------- Configuración de Firebase ----------
 
@@ -484,7 +673,6 @@ const firebaseConfig = {
   }
 
   function extraerConfig(texto) {
-    // Acepta el bloque tal como lo muestra Firebase (JS con claves sin comillas) o JSON puro
     var desde = texto.indexOf("{");
     var hasta = texto.lastIndexOf("}");
     if (desde === -1 || hasta === -1 || hasta <= desde) return null;
@@ -510,10 +698,7 @@ const firebaseConfig = {
 
   function iniciar() {
     var config = obtenerConfig();
-    if (!config) {
-      mostrarPantalla("pantallaConfig");
-      return;
-    }
+    if (!config) { mostrarPantalla("pantallaConfig"); return; }
     var base = "https://www.gstatic.com/firebasejs/" + VERSION_SDK + "/";
     Promise.all([
       import(base + "firebase-app.js"),
@@ -521,20 +706,10 @@ const firebaseConfig = {
       import(base + "firebase-firestore.js")
     ]).then(function (mods) {
       var app = mods[0].initializeApp(config);
-      fb = {
-        au: mods[1],
-        fs: mods[2],
-        auth: mods[1].getAuth(app),
-        db: mods[2].getFirestore(app)
-      };
+      fb = { au: mods[1], fs: mods[2], auth: mods[1].getAuth(app), db: mods[2].getFirestore(app) };
       fb.au.onAuthStateChanged(fb.auth, function (usuario) {
-        if (usuario) {
-          mostrarPantalla("app");
-          suscribir();
-        } else {
-          prepararLogin();
-          mostrarPantalla("pantallaLogin");
-        }
+        if (usuario) { mostrarPantalla("app"); suscribir(); }
+        else { prepararLogin(); mostrarPantalla("pantallaLogin"); }
       });
     }).catch(function (err) {
       mostrarPantalla("pantallaLogin");
@@ -546,7 +721,6 @@ const firebaseConfig = {
   function prepararLogin() {
     var email = EMAIL_CUENTA || localStorage.getItem(CLAVE_STORAGE_EMAIL) || "";
     document.getElementById("emailLogin").value = email;
-    // Si el email ya es conocido, solo se pide la clave
     document.getElementById("campoEmail").classList.toggle("oculto", !!email);
   }
 
@@ -597,10 +771,10 @@ const firebaseConfig = {
   // ---------- Datos compartidos (Firestore) ----------
 
   function suscribir() {
-    datosListos = false;
+    certListos = false; inscListos = false;
     render();
-    fb.fs.onSnapshot(fb.fs.collection(fb.db, COLECCION), function (snap) {
-      escrituras = snap.docs.map(function (d) {
+    fb.fs.onSnapshot(fb.fs.collection(fb.db, COLECCION_CERT), function (snap) {
+      certificados = snap.docs.map(function (d) {
         var datos = d.data();
         return {
           id: d.id,
@@ -610,75 +784,67 @@ const firebaseConfig = {
           fechaPedido: datos.fechaPedido || null
         };
       });
-      var primeraCarga = !datosListos;
-      datosListos = true;
+      var primeraCarga = !certListos;
+      certListos = true;
       render();
       if (primeraCarga) ofrecerMigracion();
     }, function (err) {
-      mostrarError("errorLogin", "");
-      alert("No se pudieron leer los datos compartidos: " + err.message);
+      alert("No se pudieron leer los certificados: " + err.message);
+    });
+    fb.fs.onSnapshot(fb.fs.collection(fb.db, COLECCION_INSC), function (snap) {
+      inscripciones = snap.docs.map(function (d) {
+        var datos = d.data();
+        return {
+          id: d.id,
+          nombre: datos.nombre || "",
+          fechaOtorgamiento: datos.fechaOtorgamiento || hoyISO(),
+          fechaPresentacion: datos.fechaPresentacion || null,
+          numeroEntrada: datos.numeroEntrada || ""
+        };
+      });
+      inscListos = true;
+      render();
+    }, function (err) {
+      alert("No se pudieron leer las escrituras a inscribir: " + err.message);
     });
   }
 
-  function datosDe(e) {
-    return {
-      nombre: e.nombre,
-      jurisdiccion: e.jurisdiccion,
-      fechaEscritura: e.fechaEscritura,
-      fechaPedido: e.fechaPedido || null
-    };
+  function agregar(coleccion, datos) {
+    return fb.fs.addDoc(fb.fs.collection(fb.db, coleccion), datos).catch(avisarErrorGuardado);
   }
-
-  function agregarEscritura(datos) {
-    return fb.fs.addDoc(fb.fs.collection(fb.db, COLECCION), datos).catch(avisarErrorGuardado);
+  function actualizar(coleccion, id, cambios) {
+    return fb.fs.updateDoc(fb.fs.doc(fb.db, coleccion, id), cambios).catch(avisarErrorGuardado);
   }
-
-  function actualizarEscritura(id, cambios) {
-    return fb.fs.updateDoc(fb.fs.doc(fb.db, COLECCION, id), cambios).catch(avisarErrorGuardado);
+  function eliminar(coleccion, id) {
+    return fb.fs.deleteDoc(fb.fs.doc(fb.db, coleccion, id)).catch(avisarErrorGuardado);
   }
-
-  function eliminarEscritura(id) {
-    return fb.fs.deleteDoc(fb.fs.doc(fb.db, COLECCION, id)).catch(avisarErrorGuardado);
-  }
-
-  function reemplazarTodo(lista) {
+  function reemplazarTodo(coleccion, actuales, lista) {
     var batch = fb.fs.writeBatch(fb.db);
-    escrituras.forEach(function (e) {
-      batch.delete(fb.fs.doc(fb.db, COLECCION, e.id));
-    });
-    lista.forEach(function (datos) {
-      batch.set(fb.fs.doc(fb.fs.collection(fb.db, COLECCION)), datos);
-    });
+    actuales.forEach(function (e) { batch.delete(fb.fs.doc(fb.db, coleccion, e.id)); });
+    lista.forEach(function (datos) { batch.set(fb.fs.doc(fb.fs.collection(fb.db, coleccion)), datos); });
     return batch.commit().catch(avisarErrorGuardado);
   }
-
   function avisarErrorGuardado(err) {
     alert("No se pudo guardar el cambio: " + err.message + "\nRevisá la conexión a internet y volvé a intentar.");
   }
 
-  // Datos de la versión anterior (guardados solo en este navegador): se ofrecen subir una vez
+  // Datos de la versión anterior (solo en este navegador): se ofrecen subir una vez a certificados
   function ofrecerMigracion() {
-    if (escrituras.length > 0) return;
+    if (certificados.length > 0) return;
     var viejos;
-    try {
-      viejos = JSON.parse(localStorage.getItem(CLAVE_STORAGE_LOCAL));
-    } catch (err) { return; }
+    try { viejos = JSON.parse(localStorage.getItem(CLAVE_STORAGE_LOCAL)); } catch (err) { return; }
     if (!Array.isArray(viejos) || viejos.length === 0) return;
     var validos = viejos.filter(function (x) {
-      return x && typeof x.nombre === "string" && PLAZOS[x.jurisdiccion] && /^\d{4}-\d{2}-\d{2}$/.test(x.fechaEscritura || "");
+      return x && typeof x.nombre === "string" && PLAZOS[x.jurisdiccion] && esFechaValida(x.fechaEscritura);
     });
     if (validos.length === 0) return;
-    if (confirm("Este navegador tiene " + validos.length + " escritura(s) guardadas de la versión anterior. ¿Subirlas a la base compartida para que las vean los cinco?")) {
+    if (confirm("Este navegador tiene " + validos.length + " certificado(s) guardados de la versión anterior. ¿Subirlos a la base compartida para que los vean los cinco?")) {
       Promise.all(validos.map(function (x) {
-        return agregarEscritura({
-          nombre: x.nombre,
-          jurisdiccion: x.jurisdiccion,
-          fechaEscritura: x.fechaEscritura,
-          fechaPedido: x.fechaPedido || null
+        return agregar(COLECCION_CERT, {
+          nombre: x.nombre, jurisdiccion: x.jurisdiccion,
+          fechaEscritura: x.fechaEscritura, fechaPedido: x.fechaPedido || null
         });
-      })).then(function () {
-        localStorage.removeItem(CLAVE_STORAGE_LOCAL);
-      });
+      })).then(function () { localStorage.removeItem(CLAVE_STORAGE_LOCAL); });
     }
   }
 
@@ -691,27 +857,12 @@ const firebaseConfig = {
     return el;
   }
 
-  function renderAlertas() {
-    var cont = document.getElementById("alertas");
+  function pintarBanner(contId, urgentes, textoOk) {
+    var cont = document.getElementById(contId);
     cont.innerHTML = "";
-    var urgentes = [];
-    escrituras.forEach(function (e) {
-      var info = calcular(e);
-      if (info.estado === "vencido") {
-        urgentes.push("«" + e.nombre + "»: los certificados VENCIERON el " + formatear(info.vencimiento) + ". Hay que pedirlos de nuevo.");
-      } else if (info.estado === "por-vencer") {
-        var cuando = info.diasRestantes === 0 ? "HOY" : (info.diasRestantes === 1 ? "mañana" : "en " + info.diasRestantes + " días");
-        urgentes.push("«" + e.nombre + "»: los certificados vencen " + cuando + " (" + formatear(info.vencimiento) + ").");
-      } else if (info.estado === "hay-que-pedir") {
-        urgentes.push("«" + e.nombre + "»: ya hay que pedir los certificados (fecha límite sugerida: " + formatear(info.fechaSugerida) + ", escritura el " + formatear(e.fechaEscritura) + ").");
-      }
-      if (info.noLlega && info.estado !== "vencido") {
-        urgentes.push("«" + e.nombre + "»: atención, los certificados vencen el " + formatear(info.vencimiento) + ", ANTES de la escritura (" + formatear(e.fechaEscritura) + "). Habrá que volver a pedirlos.");
-      }
-    });
     if (urgentes.length === 0) {
       cont.className = "alertas sin-alertas";
-      cont.appendChild(crearElemento("h2", null, "✔ Sin alertas: no hay certificados por vencer ni pedidos atrasados."));
+      cont.appendChild(crearElemento("h2", null, textoOk));
     } else {
       cont.className = "alertas hay-alertas";
       cont.appendChild(crearElemento("h2", null, "⚠ Atención (" + urgentes.length + ")"));
@@ -721,24 +872,35 @@ const firebaseConfig = {
     }
   }
 
-  function renderTabla() {
-    var cuerpo = document.getElementById("cuerpoTabla");
-    cuerpo.innerHTML = "";
+  function actualizarContador(id, cantidad) {
+    var el = document.getElementById(id);
+    if (cantidad > 0) { el.className = "contador hay"; el.textContent = cantidad + (cantidad === 1 ? " aviso" : " avisos"); }
+    else { el.className = "contador cero"; el.textContent = "✓ al día"; }
+  }
 
-    if (escrituras.length === 0) {
-      var trVacio = document.createElement("tr");
-      var texto = datosListos
-        ? "Todavía no hay escrituras cargadas. Agregá la primera con el formulario de arriba."
-        : "Cargando datos compartidos…";
-      var tdVacio = crearElemento("td", "vacio", texto);
-      tdVacio.colSpan = 9;
-      trVacio.appendChild(tdVacio);
-      cuerpo.appendChild(trVacio);
+  function render() {
+    var uCert = alertasCert(), uInsc = alertasInsc();
+    pintarBanner("alertasCert", uCert, "✔ Sin alertas: no hay certificados por vencer ni pedidos atrasados.");
+    pintarBanner("alertasInsc", uInsc, "✔ Sin alertas: no hay escrituras con el plazo de inscripción por vencer.");
+    actualizarContador("contadorCert", uCert.length);
+    actualizarContador("contadorInsc", uInsc.length);
+    renderTablaCert();
+    renderTablaInsc();
+  }
+
+  function renderTablaCert() {
+    var cuerpo = document.getElementById("cuerpoTablaCert");
+    cuerpo.innerHTML = "";
+    if (certificados.length === 0) {
+      var tr0 = document.createElement("tr");
+      var td0 = crearElemento("td", "vacio", certListos
+        ? "Todavía no hay certificados cargados. Agregá el primero con el formulario de arriba."
+        : "Cargando datos compartidos…");
+      td0.colSpan = 9; tr0.appendChild(td0); cuerpo.appendChild(tr0);
       return;
     }
-
-    ordenadas().forEach(function (e) {
-      var info = calcular(e);
+    certOrdenados().forEach(function (e) {
+      var info = calcularCert(e);
       var tr = document.createElement("tr");
       if (info.estado === "por-vencer") tr.className = "fila-por-vencer";
       if (info.estado === "vencido") tr.className = "fila-vencido";
@@ -746,83 +908,141 @@ const firebaseConfig = {
 
       var tdNombre = crearElemento("td", null);
       tdNombre.appendChild(document.createTextNode(e.nombre + " "));
-      var btnEditarNombre = crearElemento("button", "enlace boton-editar-nombre", "Editar");
-      btnEditarNombre.type = "button";
-      btnEditarNombre.addEventListener("click", function () { comenzarEdicion(e.id); });
-      tdNombre.appendChild(btnEditarNombre);
+      var btnEd = crearElemento("button", "enlace boton-editar-nombre", "Editar");
+      btnEd.type = "button";
+      btnEd.addEventListener("click", function () { comenzarEdicionCert(e.id); });
+      tdNombre.appendChild(btnEd);
       tr.appendChild(tdNombre);
 
       tr.appendChild(crearElemento("td", null, NOMBRES_JURISDICCION[e.jurisdiccion] + " (" + info.plazo + " días)"));
       tr.appendChild(crearElemento("td", "numero", formatear(e.fechaEscritura)));
       tr.appendChild(crearElemento("td", "numero", formatear(info.fechaSugerida)));
 
-      // Fecha de pedido: editable en la fila
       var tdPedido = crearElemento("td", "numero");
-      var inputPedido = document.createElement("input");
-      inputPedido.type = "date";
-      inputPedido.value = e.fechaPedido || "";
-      inputPedido.setAttribute("aria-label", "Fecha de pedido de " + e.nombre);
-      inputPedido.addEventListener("change", function () {
-        actualizarEscritura(e.id, { fechaPedido: inputPedido.value || null });
+      var inpPedido = document.createElement("input");
+      inpPedido.type = "date";
+      inpPedido.value = e.fechaPedido || "";
+      inpPedido.setAttribute("aria-label", "Fecha de pedido de " + e.nombre);
+      inpPedido.addEventListener("change", function () {
+        actualizar(COLECCION_CERT, e.id, { fechaPedido: inpPedido.value || null });
       });
-      tdPedido.appendChild(inputPedido);
+      tdPedido.appendChild(inpPedido);
       tr.appendChild(tdPedido);
 
       tr.appendChild(crearElemento("td", "numero", formatear(info.vencimiento)));
-      var textoDias = info.diasRestantes === null ? "—"
-        : info.diasRestantes < 0 ? "Vencido hace " + Math.abs(info.diasRestantes) + " día" + (Math.abs(info.diasRestantes) === 1 ? "" : "s")
-        : String(info.diasRestantes);
-      tr.appendChild(crearElemento("td", "numero", textoDias));
+      tr.appendChild(crearElemento("td", "numero", textoDias(info.diasRestantes)));
 
       var tdEstado = document.createElement("td");
       tdEstado.appendChild(crearElemento("span", "badge " + info.estado, info.textoEstado));
-      if (info.noLlega) {
-        tdEstado.appendChild(crearElemento("span", "advertencia-escritura", "⚠ Vence antes de la escritura"));
-      }
+      if (info.noLlega) tdEstado.appendChild(crearElemento("span", "advertencia-escritura", "⚠ Vence antes de la escritura"));
       tr.appendChild(tdEstado);
 
-      var tdAcciones = crearElemento("td", "acciones-fila");
+      var tdAcc = crearElemento("td", "acciones-fila");
       var btnCal = crearElemento("button", "enlace", "📅 Recordatorio");
       btnCal.type = "button";
-      btnCal.title = "Crear recordatorio en Google Calendar";
-      btnCal.addEventListener("click", function () { abrirCalendario(e, info); });
-      tdAcciones.appendChild(btnCal);
-
-      var btnEliminar = crearElemento("button", "peligro", "Eliminar");
-      btnEliminar.type = "button";
-      btnEliminar.addEventListener("click", function () {
-        if (confirm("¿Eliminar la escritura «" + e.nombre + "» para todos los usuarios?")) {
-          if (idEnEdicion === e.id) cancelarEdicion();
-          eliminarEscritura(e.id);
+      btnCal.addEventListener("click", function () { calendarioCert(e, info); });
+      tdAcc.appendChild(btnCal);
+      var btnDel = crearElemento("button", "peligro", "Eliminar");
+      btnDel.type = "button";
+      btnDel.addEventListener("click", function () {
+        if (confirm("¿Eliminar el certificado «" + e.nombre + "» para todos los usuarios?")) {
+          if (idEnEdicionCert === e.id) cancelarEdicionCert();
+          eliminar(COLECCION_CERT, e.id);
         }
       });
-      tdAcciones.appendChild(btnEliminar);
-
-      tr.appendChild(tdAcciones);
+      tdAcc.appendChild(btnDel);
+      tr.appendChild(tdAcc);
       cuerpo.appendChild(tr);
     });
   }
 
-  function render() {
-    renderAlertas();
-    renderTabla();
+  function renderTablaInsc() {
+    var cuerpo = document.getElementById("cuerpoTablaInsc");
+    cuerpo.innerHTML = "";
+    if (inscripciones.length === 0) {
+      var tr0 = document.createElement("tr");
+      var td0 = crearElemento("td", "vacio", inscListos
+        ? "Todavía no hay escrituras a inscribir. Agregá la primera con el formulario de arriba."
+        : "Cargando datos compartidos…");
+      td0.colSpan = 8; tr0.appendChild(td0); cuerpo.appendChild(tr0);
+      return;
+    }
+    inscOrdenadas().forEach(function (e) {
+      var info = calcularInsc(e);
+      var tr = document.createElement("tr");
+      if (info.estado === "por-vencer") tr.className = "fila-por-vencer";
+      if (info.estado === "vencido") tr.className = "fila-vencido";
+
+      var tdNombre = crearElemento("td", null);
+      tdNombre.appendChild(document.createTextNode(e.nombre + " "));
+      var btnEd = crearElemento("button", "enlace boton-editar-nombre", "Editar");
+      btnEd.type = "button";
+      btnEd.addEventListener("click", function () { comenzarEdicionInsc(e.id); });
+      tdNombre.appendChild(btnEd);
+      tr.appendChild(tdNombre);
+
+      tr.appendChild(crearElemento("td", "numero", formatear(e.fechaOtorgamiento)));
+      tr.appendChild(crearElemento("td", "numero", formatear(info.vencimiento)));
+      tr.appendChild(crearElemento("td", "numero", info.estado === "presentada" ? "—" : textoDias(info.diasRestantes)));
+
+      var tdPres = crearElemento("td", "numero");
+      var inpPres = document.createElement("input");
+      inpPres.type = "date";
+      inpPres.value = e.fechaPresentacion || "";
+      inpPres.setAttribute("aria-label", "Fecha de presentación de " + e.nombre);
+      inpPres.addEventListener("change", function () {
+        actualizar(COLECCION_INSC, e.id, { fechaPresentacion: inpPres.value || null });
+      });
+      tdPres.appendChild(inpPres);
+      tr.appendChild(tdPres);
+
+      var tdEntrada = crearElemento("td", "numero");
+      var inpEntrada = document.createElement("input");
+      inpEntrada.type = "text";
+      inpEntrada.className = "entrada";
+      inpEntrada.value = e.numeroEntrada || "";
+      inpEntrada.placeholder = "—";
+      inpEntrada.setAttribute("aria-label", "N° de entrada de " + e.nombre);
+      inpEntrada.addEventListener("change", function () {
+        actualizar(COLECCION_INSC, e.id, { numeroEntrada: inpEntrada.value.trim() });
+      });
+      tdEntrada.appendChild(inpEntrada);
+      tr.appendChild(tdEntrada);
+
+      var tdEstado = document.createElement("td");
+      tdEstado.appendChild(crearElemento("span", "badge " + info.estado, info.textoEstado));
+      tr.appendChild(tdEstado);
+
+      var tdAcc = crearElemento("td", "acciones-fila");
+      if (info.estado !== "presentada") {
+        var btnCal = crearElemento("button", "enlace", "📅 Recordatorio");
+        btnCal.type = "button";
+        btnCal.addEventListener("click", function () { calendarioInsc(e, info); });
+        tdAcc.appendChild(btnCal);
+      }
+      var btnDel = crearElemento("button", "peligro", "Eliminar");
+      btnDel.type = "button";
+      btnDel.addEventListener("click", function () {
+        if (confirm("¿Eliminar la escritura «" + e.nombre + "» de la lista de inscripción, para todos los usuarios?")) {
+          if (idEnEdicionInsc === e.id) cancelarEdicionInsc();
+          eliminar(COLECCION_INSC, e.id);
+        }
+      });
+      tdAcc.appendChild(btnDel);
+      tr.appendChild(tdAcc);
+      cuerpo.appendChild(tr);
+    });
+  }
+
+  function textoDias(dias) {
+    if (dias === null || dias === undefined) return "—";
+    if (dias < 0) return "Vencido hace " + Math.abs(dias) + " día" + (Math.abs(dias) === 1 ? "" : "s");
+    return String(dias);
   }
 
   // ---------- Google Calendar ----------
 
-  function abrirCalendario(e, info) {
-    var titulo, fechaISO, detalle;
-    if (e.fechaPedido) {
-      fechaISO = sumarDias(info.vencimiento, -DIAS_AVISO);
-      titulo = "Vencen certificados – " + e.nombre;
-      detalle = "Los certificados de la escritura «" + e.nombre + "» (" + NOMBRES_JURISDICCION[e.jurisdiccion] +
-        ") vencen el " + formatear(info.vencimiento) + ". Escritura prevista para el " + formatear(e.fechaEscritura) + ".";
-    } else {
-      fechaISO = info.fechaSugerida;
-      titulo = "Pedir certificados – " + e.nombre;
-      detalle = "Pedir los certificados para la escritura «" + e.nombre + "» (" + NOMBRES_JURISDICCION[e.jurisdiccion] +
-        ", plazo " + info.plazo + " días). Escritura prevista para el " + formatear(e.fechaEscritura) + ".";
-    }
+  function abrirCalendario(titulo, fechaISO, detalle) {
     var inicio = fechaISO.replace(/-/g, "");
     var fin = sumarDias(fechaISO, 1).replace(/-/g, ""); // evento de día completo
     var url = "https://calendar.google.com/calendar/render?action=TEMPLATE" +
@@ -832,68 +1052,158 @@ const firebaseConfig = {
     window.open(url, "_blank");
   }
 
-  // ---------- Formulario (alta y edición) ----------
+  function calendarioCert(e, info) {
+    if (e.fechaPedido) {
+      abrirCalendario("Vencen certificados – " + e.nombre, sumarDias(info.vencimiento, -DIAS_AVISO),
+        "Los certificados de la escritura «" + e.nombre + "» (" + NOMBRES_JURISDICCION[e.jurisdiccion] +
+        ") vencen el " + formatear(info.vencimiento) + ". Escritura prevista para el " + formatear(e.fechaEscritura) + ".");
+    } else {
+      abrirCalendario("Pedir certificados – " + e.nombre, info.fechaSugerida,
+        "Pedir los certificados para la escritura «" + e.nombre + "» (" + NOMBRES_JURISDICCION[e.jurisdiccion] +
+        ", plazo " + info.plazo + " días). Escritura prevista para el " + formatear(e.fechaEscritura) + ".");
+    }
+  }
 
-  var idEnEdicion = null;
+  function calendarioInsc(e, info) {
+    abrirCalendario("Inscribir escritura – " + e.nombre, sumarDias(info.vencimiento, -DIAS_AVISO),
+      "Presentar para inscripción en el Registro de la Propiedad Inmueble la escritura «" + e.nombre +
+      "» (otorgada el " + formatear(e.fechaOtorgamiento) + "). El plazo de 45 días vence el " + formatear(info.vencimiento) + ".");
+  }
 
-  function comenzarEdicion(id) {
-    var e = escrituras.find(function (x) { return x.id === id; });
+  // ---------- Formulario CERTIFICADOS (alta y edición) ----------
+
+  var idEnEdicionCert = null;
+
+  function comenzarEdicionCert(id) {
+    var e = certificados.find(function (x) { return x.id === id; });
     if (!e) return;
-    idEnEdicion = id;
-    document.getElementById("nombre").value = e.nombre;
+    idEnEdicionCert = id;
+    document.getElementById("nombreCert").value = e.nombre;
     document.getElementById("jurisdiccion").value = e.jurisdiccion;
     document.getElementById("fechaEscritura").value = e.fechaEscritura;
     document.getElementById("fechaPedido").value = e.fechaPedido || "";
-    document.getElementById("tituloForm").textContent = "Editar escritura";
-    document.getElementById("btnGuardar").textContent = "Guardar cambios";
-    document.getElementById("btnCancelar").style.display = "inline-block";
-    document.getElementById("nombre").focus();
+    document.getElementById("tituloFormCert").textContent = "Editar certificado";
+    document.getElementById("btnGuardarCert").textContent = "Guardar cambios";
+    document.getElementById("btnCancelarCert").style.display = "inline-block";
+    document.getElementById("nombreCert").focus();
   }
-
-  function cancelarEdicion() {
-    idEnEdicion = null;
+  function cancelarEdicionCert() {
+    idEnEdicionCert = null;
     document.getElementById("formEscritura").reset();
-    document.getElementById("tituloForm").textContent = "Agregar escritura";
-    document.getElementById("btnGuardar").textContent = "Agregar";
-    document.getElementById("btnCancelar").style.display = "none";
+    document.getElementById("tituloFormCert").textContent = "Agregar escritura";
+    document.getElementById("btnGuardarCert").textContent = "Agregar";
+    document.getElementById("btnCancelarCert").style.display = "none";
   }
-
-  document.getElementById("btnCancelar").addEventListener("click", cancelarEdicion);
-
+  document.getElementById("btnCancelarCert").addEventListener("click", cancelarEdicionCert);
   document.getElementById("formEscritura").addEventListener("submit", function (ev) {
     ev.preventDefault();
     var datos = {
-      nombre: document.getElementById("nombre").value.trim(),
+      nombre: document.getElementById("nombreCert").value.trim(),
       jurisdiccion: document.getElementById("jurisdiccion").value,
       fechaEscritura: document.getElementById("fechaEscritura").value,
       fechaPedido: document.getElementById("fechaPedido").value || null
     };
     if (!datos.nombre || !datos.fechaEscritura) return;
+    if (idEnEdicionCert !== null) actualizar(COLECCION_CERT, idEnEdicionCert, datos);
+    else agregar(COLECCION_CERT, datos);
+    cancelarEdicionCert();
+  });
 
-    if (idEnEdicion !== null) {
-      actualizarEscritura(idEnEdicion, datos);
-    } else {
-      agregarEscritura(datos);
-    }
-    cancelarEdicion();
+  // ---------- Formulario INSCRIPCIONES (alta y edición) ----------
+
+  var idEnEdicionInsc = null;
+
+  function comenzarEdicionInsc(id) {
+    var e = inscripciones.find(function (x) { return x.id === id; });
+    if (!e) return;
+    idEnEdicionInsc = id;
+    document.getElementById("nombreInsc").value = e.nombre;
+    document.getElementById("fechaOtorgamiento").value = e.fechaOtorgamiento;
+    document.getElementById("fechaPresentacion").value = e.fechaPresentacion || "";
+    document.getElementById("numeroEntrada").value = e.numeroEntrada || "";
+    document.getElementById("tituloFormInsc").textContent = "Editar escritura a inscribir";
+    document.getElementById("btnGuardarInsc").textContent = "Guardar cambios";
+    document.getElementById("btnCancelarInsc").style.display = "inline-block";
+    document.getElementById("nombreInsc").focus();
+  }
+  function cancelarEdicionInsc() {
+    idEnEdicionInsc = null;
+    document.getElementById("formInscripcion").reset();
+    document.getElementById("tituloFormInsc").textContent = "Agregar escritura a inscribir";
+    document.getElementById("btnGuardarInsc").textContent = "Agregar";
+    document.getElementById("btnCancelarInsc").style.display = "none";
+  }
+  document.getElementById("btnCancelarInsc").addEventListener("click", cancelarEdicionInsc);
+  document.getElementById("formInscripcion").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var datos = {
+      nombre: document.getElementById("nombreInsc").value.trim(),
+      fechaOtorgamiento: document.getElementById("fechaOtorgamiento").value,
+      fechaPresentacion: document.getElementById("fechaPresentacion").value || null,
+      numeroEntrada: document.getElementById("numeroEntrada").value.trim()
+    };
+    if (!datos.nombre || !datos.fechaOtorgamiento) return;
+    if (idEnEdicionInsc !== null) actualizar(COLECCION_INSC, idEnEdicionInsc, datos);
+    else agregar(COLECCION_INSC, datos);
+    cancelarEdicionInsc();
   });
 
   // ---------- Exportar / Importar ----------
 
-  document.getElementById("btnExportar").addEventListener("click", function () {
-    var blob = new Blob([JSON.stringify(escrituras.map(datosDe), null, 2)], { type: "application/json" });
+  function descargar(nombreArchivo, contenido) {
+    var blob = new Blob([contenido], { type: "application/json" });
     var a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "certificados-notariales-" + hoyISO() + ".json";
+    a.download = nombreArchivo;
     a.click();
     URL.revokeObjectURL(a.href);
+  }
+
+  document.getElementById("btnExportarCert").addEventListener("click", function () {
+    var datos = certificados.map(function (e) {
+      return { nombre: e.nombre, jurisdiccion: e.jurisdiccion, fechaEscritura: e.fechaEscritura, fechaPedido: e.fechaPedido || null };
+    });
+    descargar("certificados-" + hoyISO() + ".json", JSON.stringify(datos, null, 2));
+  });
+  document.getElementById("btnImportarCert").addEventListener("click", function () {
+    document.getElementById("inputImportarCert").click();
+  });
+  document.getElementById("inputImportarCert").addEventListener("change", function (ev) {
+    leerArchivo(ev, function (datos) {
+      var validas = datos.filter(function (x) {
+        return x && typeof x.nombre === "string" && PLAZOS[x.jurisdiccion] && esFechaValida(x.fechaEscritura);
+      });
+      if (!confirm("Se van a importar " + validas.length + " certificados y se reemplazará el listado compartido que ven los cinco. ¿Continuar?")) return;
+      reemplazarTodo(COLECCION_CERT, certificados, validas.map(function (x) {
+        return { nombre: x.nombre, jurisdiccion: x.jurisdiccion, fechaEscritura: x.fechaEscritura, fechaPedido: x.fechaPedido || null };
+      }));
+      cancelarEdicionCert();
+    });
   });
 
-  document.getElementById("btnImportar").addEventListener("click", function () {
-    document.getElementById("inputImportar").click();
+  document.getElementById("btnExportarInsc").addEventListener("click", function () {
+    var datos = inscripciones.map(function (e) {
+      return { nombre: e.nombre, fechaOtorgamiento: e.fechaOtorgamiento, fechaPresentacion: e.fechaPresentacion || null, numeroEntrada: e.numeroEntrada || "" };
+    });
+    descargar("inscripciones-" + hoyISO() + ".json", JSON.stringify(datos, null, 2));
+  });
+  document.getElementById("btnImportarInsc").addEventListener("click", function () {
+    document.getElementById("inputImportarInsc").click();
+  });
+  document.getElementById("inputImportarInsc").addEventListener("change", function (ev) {
+    leerArchivo(ev, function (datos) {
+      var validas = datos.filter(function (x) {
+        return x && typeof x.nombre === "string" && esFechaValida(x.fechaOtorgamiento);
+      });
+      if (!confirm("Se van a importar " + validas.length + " escrituras a inscribir y se reemplazará el listado compartido que ven los cinco. ¿Continuar?")) return;
+      reemplazarTodo(COLECCION_INSC, inscripciones, validas.map(function (x) {
+        return { nombre: x.nombre, fechaOtorgamiento: x.fechaOtorgamiento, fechaPresentacion: x.fechaPresentacion || null, numeroEntrada: x.numeroEntrada || "" };
+      }));
+      cancelarEdicionInsc();
+    });
   });
 
-  document.getElementById("inputImportar").addEventListener("change", function (ev) {
+  function leerArchivo(ev, alTener) {
     var archivo = ev.target.files[0];
     if (!archivo) return;
     var lector = new FileReader();
@@ -901,26 +1211,14 @@ const firebaseConfig = {
       try {
         var datos = JSON.parse(lector.result);
         if (!Array.isArray(datos)) throw new Error("formato inválido");
-        var validas = datos.filter(function (x) {
-          return x && typeof x.nombre === "string" && PLAZOS[x.jurisdiccion] && /^\d{4}-\d{2}-\d{2}$/.test(x.fechaEscritura || "");
-        });
-        if (!confirm("Se van a importar " + validas.length + " escrituras y se reemplazará el listado compartido que ven los cinco. ¿Continuar?")) return;
-        reemplazarTodo(validas.map(function (x) {
-          return {
-            nombre: x.nombre,
-            jurisdiccion: x.jurisdiccion,
-            fechaEscritura: x.fechaEscritura,
-            fechaPedido: x.fechaPedido || null
-          };
-        }));
-        cancelarEdicion();
+        alTener(datos);
       } catch (err) {
         alert("No se pudo importar el archivo: no es un respaldo válido.");
       }
     };
     lector.readAsText(archivo);
     ev.target.value = "";
-  });
+  }
 
   // ---------- Inicio ----------
 
