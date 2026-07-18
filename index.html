@@ -340,8 +340,15 @@ const firebaseConfig = {
   // ================== CONFIGURACIÓN ==================
   // Cuando la escribanía cree su proyecto de Firebase, pegar acá la
   // configuración para que quede fija para los cinco usuarios.
-  var FIREBASE_CONFIG = null; // ej.: { apiKey: "...", authDomain: "...", projectId: "...", appId: "..." }
-  var EMAIL_CUENTA = "";      // email de la cuenta compartida (se prellena en el ingreso)
+  var FIREBASE_CONFIG = {
+    apiKey: "AIzaSyDTzPvAfpHDAYsGEHvFwSxiACuwroDI67k",
+    authDomain: "certificados-fb921.firebaseapp.com",
+    projectId: "certificados-fb921",
+    storageBucket: "certificados-fb921.firebasestorage.app",
+    messagingSenderId: "577862100762",
+    appId: "1:577862100762:web:0ceb70ab62af768ae6aea3"
+  };
+  var EMAIL_CUENTA = "escribania@escribaniagm.com.ar"; // email de la cuenta compartida (se prellena en el ingreso)
 
   var VERSION_SDK = "10.14.1";
   var CLAVE_STORAGE_LOCAL = "certificados-notariales";      // datos viejos (versión sin nube), solo para migrar
