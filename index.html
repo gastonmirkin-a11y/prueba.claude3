@@ -144,6 +144,13 @@
   button.peligro:hover { background: var(--rojo-fondo); }
   button.enlace { background: transparent; color: var(--azul-claro); padding: 4px 8px; font-size: 0.85rem; }
   button.enlace:hover { background: var(--gris-fondo); }
+  button.boton-editar-nombre {
+    padding: 1px 7px;
+    font-size: 0.72rem;
+    border: 1px solid var(--azul-claro);
+    border-radius: 999px;
+    vertical-align: middle;
+  }
 
   .barra-tabla {
     display: flex;
@@ -403,7 +410,7 @@ const firebaseConfig = {
     var hoy = hoyISO();
     var info = {
       plazo: plazo,
-      fechaSugerida: sumarDias(e.fechaEscritura, -plazo),
+      fechaSugerida: sumarDias(e.fechaEscritura, -(plazo - 1)),
       vencimiento: null,
       diasRestantes: null,
       estado: null,
@@ -411,7 +418,7 @@ const firebaseConfig = {
       noLlega: false // el certificado vence antes de la fecha de escritura
     };
     if (e.fechaPedido) {
-      info.vencimiento = sumarDias(e.fechaPedido, plazo);
+      info.vencimiento = sumarDias(e.fechaPedido, plazo - 1);
       info.diasRestantes = diferenciaDias(hoy, info.vencimiento);
       info.noLlega = diferenciaDias(info.vencimiento, e.fechaEscritura) > 0;
       if (info.diasRestantes < 0) {
@@ -737,7 +744,14 @@ const firebaseConfig = {
       if (info.estado === "vencido") tr.className = "fila-vencido";
       if (info.estado === "hay-que-pedir") tr.className = "fila-hay-que-pedir";
 
-      tr.appendChild(crearElemento("td", null, e.nombre));
+      var tdNombre = crearElemento("td", null);
+      tdNombre.appendChild(document.createTextNode(e.nombre + " "));
+      var btnEditarNombre = crearElemento("button", "enlace boton-editar-nombre", "Editar");
+      btnEditarNombre.type = "button";
+      btnEditarNombre.addEventListener("click", function () { comenzarEdicion(e.id); });
+      tdNombre.appendChild(btnEditarNombre);
+      tr.appendChild(tdNombre);
+
       tr.appendChild(crearElemento("td", null, NOMBRES_JURISDICCION[e.jurisdiccion] + " (" + info.plazo + " días)"));
       tr.appendChild(crearElemento("td", "numero", formatear(e.fechaEscritura)));
       tr.appendChild(crearElemento("td", "numero", formatear(info.fechaSugerida)));
@@ -773,11 +787,6 @@ const firebaseConfig = {
       btnCal.title = "Crear recordatorio en Google Calendar";
       btnCal.addEventListener("click", function () { abrirCalendario(e, info); });
       tdAcciones.appendChild(btnCal);
-
-      var btnEditar = crearElemento("button", "enlace", "Editar");
-      btnEditar.type = "button";
-      btnEditar.addEventListener("click", function () { comenzarEdicion(e.id); });
-      tdAcciones.appendChild(btnEditar);
 
       var btnEliminar = crearElemento("button", "peligro", "Eliminar");
       btnEliminar.type = "button";
