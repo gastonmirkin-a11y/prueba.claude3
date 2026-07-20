@@ -134,6 +134,12 @@
     align-items: end;
   }
   @media (max-width: 900px) { form.form-grid { grid-template-columns: 1fr 1fr; } }
+  form.form-grid-ancho {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    align-items: end;
+  }
   .campo label {
     display: block;
     font-size: 0.8rem;
@@ -219,6 +225,21 @@
     border: 1px solid var(--gris-borde);
     border-radius: 5px;
     font-size: 0.85rem;
+  }
+  td input.monto {
+    width: 100px;
+    padding: 5px 6px;
+    border: 1px solid var(--gris-borde);
+    border-radius: 5px;
+    font-size: 0.85rem;
+    text-align: right;
+  }
+  .nota-fila {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.75rem;
+    color: var(--amarillo);
+    font-weight: 600;
   }
 
   .badge {
@@ -325,6 +346,14 @@
         <span class="sub">Escrituras a inscribir en el Registro de la Propiedad Inmueble (45 días desde el otorgamiento).</span>
       </span>
       <span class="contador cero" id="contadorInsc">✓</span>
+    </button>
+    <button type="button" class="menu-boton" id="menuPagos">
+      <span class="icono">💰</span>
+      <span class="texto">
+        <span class="titulo">Seguimiento de pagos</span>
+        <span class="sub">Trabajos facturados y su cobro. Se resaltan los pendientes (amarillo a los 15 días, rojo a los 30).</span>
+      </span>
+      <span class="contador cero" id="contadorPagos">✓</span>
     </button>
   </div>
 
@@ -454,6 +483,81 @@
     </section>
   </div>
 
+  <!-- Sección Seguimiento de pagos -->
+  <div id="seccionPagos" class="oculto">
+    <div id="alertasPagos" class="alertas sin-alertas"></div>
+
+    <section class="panel">
+      <h2 id="tituloFormPago">Agregar trabajo</h2>
+      <form id="formPago" class="form-grid-ancho">
+        <div class="campo">
+          <label for="descripcionPago">Descripción del trabajo</label>
+          <input type="text" id="descripcionPago" required placeholder="Ej.: Escritura compraventa">
+        </div>
+        <div class="campo">
+          <label for="clientePago">Cliente</label>
+          <input type="text" id="clientePago" placeholder="Ej.: Juan Pérez">
+        </div>
+        <div class="campo">
+          <label for="datosFactura">Datos de la factura</label>
+          <input type="text" id="datosFactura" placeholder="Ej.: Factura B 0001-00012345">
+        </div>
+        <div class="campo">
+          <label for="fechaFactura">Fecha de factura</label>
+          <input type="date" id="fechaFactura" required>
+        </div>
+        <div class="campo">
+          <label for="montoFacturado">Monto facturado ($)</label>
+          <input type="number" id="montoFacturado" min="0" step="0.01" placeholder="0">
+        </div>
+        <div class="campo">
+          <label for="montoCobrado">Monto cobrado ($, opcional)</label>
+          <input type="number" id="montoCobrado" min="0" step="0.01" placeholder="0">
+        </div>
+        <div class="campo">
+          <label for="fechaCobro">Fecha de cobro (opcional)</label>
+          <input type="date" id="fechaCobro">
+        </div>
+        <div class="campo">
+          <button type="submit" class="primario" id="btnGuardarPago">Agregar</button>
+          <button type="button" class="secundario" id="btnCancelarPago" style="display:none; margin-top:6px;">Cancelar</button>
+        </div>
+      </form>
+      <p class="nota">La fila se pinta de <strong style="color:var(--amarillo)">amarillo</strong> cuando pasan 15 días desde la factura sin cobrar, y de <strong style="color:var(--rojo)">rojo</strong> a los 30 días. Cargá el monto cobrado (total o parcial) y la fecha de cobro directamente en la tabla; cuando el cobro está completo, el trabajo queda como «Cobrado» y sale de las alertas.</p>
+    </section>
+
+    <section class="panel">
+      <div class="barra-tabla">
+        <h2 style="margin:0;">Trabajos</h2>
+        <div class="acciones-globales">
+          <button type="button" class="secundario" id="btnExportarPago">Exportar respaldo</button>
+          <button type="button" class="secundario" id="btnImportarPago">Importar respaldo</button>
+          <input type="file" id="inputImportarPago" accept=".json,application/json" style="display:none;">
+        </div>
+      </div>
+      <div class="contenedor-tabla">
+        <table>
+          <thead>
+            <tr>
+              <th>Trabajo</th>
+              <th>Cliente</th>
+              <th>Factura</th>
+              <th>Fecha factura</th>
+              <th>Días</th>
+              <th>Facturado</th>
+              <th>Cobrado</th>
+              <th>Fecha cobro</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="cuerpoTablaPagos"></tbody>
+        </table>
+      </div>
+      <p class="nota">Todo lo que se carga acá lo ven los cinco integrantes al instante.</p>
+    </section>
+  </div>
+
 </main>
 
 <script>
@@ -477,15 +581,20 @@
   var CLAVE_STORAGE_EMAIL = "certificados-email-cuenta";
   var COLECCION_CERT = "escrituras";      // certificados (colección existente, no se renombra)
   var COLECCION_INSC = "inscripciones";   // escrituras a inscribir
+  var COLECCION_PAGOS = "trabajos";       // seguimiento de pagos
   var DIAS_AVISO = 3; // alerta cuando faltan 3 días o menos para el vencimiento
   var PLAZOS = { capital: 15, provincia: 30 }; // certificados, días corridos
   var NOMBRES_JURISDICCION = { capital: "Capital", provincia: "Provincia" };
   var PLAZO_INSC = 45; // inscripción: días corridos desde el día siguiente al otorgamiento
+  var DIAS_AMARILLO = 15; // pagos: a los 15 días de la factura sin cobrar
+  var DIAS_ROJO = 30;     // pagos: a los 30 días de la factura sin cobrar
 
   var certificados = [];
   var inscripciones = [];
+  var trabajos = [];
   var certListos = false;
   var inscListos = false;
+  var pagosListos = false;
   var fb = null; // { db, auth, fs, au } — SDK y conexiones una vez inicializado
 
   // ---------- Fechas (strings YYYY-MM-DD; aritmética a mediodía local) ----------
@@ -514,6 +623,8 @@
     return p[2] + "/" + p[1] + "/" + p[0];
   }
   function esFechaValida(iso) { return /^\d{4}-\d{2}-\d{2}$/.test(iso || ""); }
+  function aNumero(v) { var n = Number(v); return isNaN(n) || n < 0 ? 0 : n; }
+  function formatMonto(n) { return "$" + aNumero(n).toLocaleString("es-AR"); }
 
   // ---------- Lógica de negocio: CERTIFICADOS ----------
 
@@ -620,6 +731,51 @@
     return urgentes;
   }
 
+  // ---------- Lógica de negocio: PAGOS ----------
+
+  function calcularPago(e) {
+    var hoy = hoyISO();
+    var info = {
+      dias: diferenciaDias(e.fechaFactura, hoy),
+      saldo: aNumero(e.monto) - aNumero(e.montoCobrado),
+      parcial: false,
+      estado: null,
+      textoEstado: null
+    };
+    var pagado = aNumero(e.monto) > 0 ? (aNumero(e.montoCobrado) >= aNumero(e.monto)) : !!e.fechaCobro;
+    if (pagado) {
+      info.estado = "cobrado"; info.textoEstado = "Cobrado";
+    } else {
+      info.parcial = aNumero(e.montoCobrado) > 0;
+      if (info.dias >= DIAS_ROJO) { info.estado = "rojo"; info.textoEstado = "+" + DIAS_ROJO + " días"; }
+      else if (info.dias >= DIAS_AMARILLO) { info.estado = "amarillo"; info.textoEstado = "+" + DIAS_AMARILLO + " días"; }
+      else { info.estado = "reciente"; info.textoEstado = "Al día"; }
+    }
+    return info;
+  }
+
+  var ORDEN_PAGO = { "rojo": 0, "amarillo": 1, "reciente": 2, "cobrado": 3 };
+
+  function pagosOrdenados() {
+    return trabajos.slice().sort(function (a, b) {
+      var ia = calcularPago(a), ib = calcularPago(b);
+      if (ORDEN_PAGO[ia.estado] !== ORDEN_PAGO[ib.estado]) return ORDEN_PAGO[ia.estado] - ORDEN_PAGO[ib.estado];
+      return a.fechaFactura < b.fechaFactura ? -1 : a.fechaFactura > b.fechaFactura ? 1 : 0;
+    });
+  }
+
+  function alertasPagos() {
+    var urgentes = [];
+    trabajos.forEach(function (e) {
+      var info = calcularPago(e);
+      if (info.estado === "amarillo" || info.estado === "rojo") {
+        var quien = e.cliente ? " (" + e.cliente + ")" : "";
+        urgentes.push("«" + e.descripcion + "»" + quien + ": factura del " + formatear(e.fechaFactura) + ", pasaron " + info.dias + " días sin cobrar" + (info.parcial ? " (falta " + formatMonto(info.saldo) + ")" : "") + ".");
+      }
+    });
+    return urgentes;
+  }
+
   // ---------- Pantallas y navegación ----------
 
   function mostrarPantalla(id) {
@@ -635,6 +791,7 @@
     document.getElementById("pantallaMenu").classList.toggle("oculto", nombre !== "menu");
     document.getElementById("seccionCertificados").classList.toggle("oculto", nombre !== "certificados");
     document.getElementById("seccionInscripciones").classList.toggle("oculto", nombre !== "inscripciones");
+    document.getElementById("seccionPagos").classList.toggle("oculto", nombre !== "pagos");
     document.getElementById("btnMenu").classList.toggle("oculto", nombre === "menu");
     var titulo = document.getElementById("tituloHeader");
     var sub = document.getElementById("subtituloHeader");
@@ -644,6 +801,9 @@
     } else if (nombre === "inscripciones") {
       titulo.textContent = "🏛️ Inscripción de escrituras";
       sub.textContent = "Plazo para inscribir en el Registro: 45 días corridos desde el otorgamiento";
+    } else if (nombre === "pagos") {
+      titulo.textContent = "💰 Seguimiento de pagos";
+      sub.textContent = "Trabajos facturados y su cobro — amarillo a los 15 días, rojo a los 30";
     } else {
       titulo.textContent = "🗂️ Escribanía";
       sub.textContent = "Seguimiento notarial";
@@ -659,6 +819,7 @@
 
   document.getElementById("menuCertificados").addEventListener("click", function () { mostrarSeccion("certificados"); });
   document.getElementById("menuInscripciones").addEventListener("click", function () { mostrarSeccion("inscripciones"); });
+  document.getElementById("menuPagos").addEventListener("click", function () { mostrarSeccion("pagos"); });
   document.getElementById("btnMenu").addEventListener("click", function () { mostrarSeccion("menu"); });
 
   // ---------- Configuración de Firebase ----------
@@ -807,6 +968,25 @@
     }, function (err) {
       alert("No se pudieron leer las escrituras a inscribir: " + err.message);
     });
+    fb.fs.onSnapshot(fb.fs.collection(fb.db, COLECCION_PAGOS), function (snap) {
+      trabajos = snap.docs.map(function (d) {
+        var datos = d.data();
+        return {
+          id: d.id,
+          descripcion: datos.descripcion || "",
+          cliente: datos.cliente || "",
+          datosFactura: datos.datosFactura || "",
+          fechaFactura: datos.fechaFactura || hoyISO(),
+          monto: aNumero(datos.monto),
+          montoCobrado: aNumero(datos.montoCobrado),
+          fechaCobro: datos.fechaCobro || null
+        };
+      });
+      pagosListos = true;
+      render();
+    }, function (err) {
+      alert("No se pudieron leer los trabajos: " + err.message);
+    });
   }
 
   function agregar(coleccion, datos) {
@@ -879,13 +1059,16 @@
   }
 
   function render() {
-    var uCert = alertasCert(), uInsc = alertasInsc();
+    var uCert = alertasCert(), uInsc = alertasInsc(), uPagos = alertasPagos();
     pintarBanner("alertasCert", uCert, "✔ Sin alertas: no hay certificados por vencer ni pedidos atrasados.");
     pintarBanner("alertasInsc", uInsc, "✔ Sin alertas: no hay escrituras con el plazo de inscripción por vencer.");
+    pintarBanner("alertasPagos", uPagos, "✔ Sin alertas: no hay trabajos con la factura atrasada sin cobrar.");
     actualizarContador("contadorCert", uCert.length);
     actualizarContador("contadorInsc", uInsc.length);
+    actualizarContador("contadorPagos", uPagos.length);
     renderTablaCert();
     renderTablaInsc();
+    renderTablaPagos();
   }
 
   function renderTablaCert() {
@@ -1034,6 +1217,88 @@
     });
   }
 
+  function renderTablaPagos() {
+    var cuerpo = document.getElementById("cuerpoTablaPagos");
+    cuerpo.innerHTML = "";
+    if (trabajos.length === 0) {
+      var tr0 = document.createElement("tr");
+      var td0 = crearElemento("td", "vacio", pagosListos
+        ? "Todavía no hay trabajos cargados. Agregá el primero con el formulario de arriba."
+        : "Cargando datos compartidos…");
+      td0.colSpan = 10; tr0.appendChild(td0); cuerpo.appendChild(tr0);
+      return;
+    }
+    pagosOrdenados().forEach(function (e) {
+      var info = calcularPago(e);
+      var tr = document.createElement("tr");
+      if (info.estado === "amarillo") tr.className = "fila-hay-que-pedir";
+      if (info.estado === "rojo") tr.className = "fila-vencido";
+
+      var tdDesc = crearElemento("td", null);
+      tdDesc.appendChild(document.createTextNode(e.descripcion + " "));
+      var btnEd = crearElemento("button", "enlace boton-editar-nombre", "Editar");
+      btnEd.type = "button";
+      btnEd.addEventListener("click", function () { comenzarEdicionPago(e.id); });
+      tdDesc.appendChild(btnEd);
+      tr.appendChild(tdDesc);
+
+      tr.appendChild(crearElemento("td", null, e.cliente || "—"));
+      tr.appendChild(crearElemento("td", null, e.datosFactura || "—"));
+      tr.appendChild(crearElemento("td", "numero", formatear(e.fechaFactura)));
+      tr.appendChild(crearElemento("td", "numero", info.estado === "cobrado" ? "—" : String(info.dias)));
+      tr.appendChild(crearElemento("td", "numero", formatMonto(e.monto)));
+
+      // Monto cobrado: editable en la fila
+      var tdCobrado = crearElemento("td", "numero");
+      var inpCobrado = document.createElement("input");
+      inpCobrado.type = "number"; inpCobrado.min = "0"; inpCobrado.step = "0.01";
+      inpCobrado.className = "monto";
+      inpCobrado.value = e.montoCobrado ? String(e.montoCobrado) : "";
+      inpCobrado.placeholder = "0";
+      inpCobrado.setAttribute("aria-label", "Monto cobrado de " + e.descripcion);
+      inpCobrado.addEventListener("change", function () {
+        actualizar(COLECCION_PAGOS, e.id, { montoCobrado: aNumero(inpCobrado.value) });
+      });
+      tdCobrado.appendChild(inpCobrado);
+      tr.appendChild(tdCobrado);
+
+      // Fecha de cobro: editable en la fila
+      var tdFCobro = crearElemento("td", "numero");
+      var inpFCobro = document.createElement("input");
+      inpFCobro.type = "date";
+      inpFCobro.value = e.fechaCobro || "";
+      inpFCobro.setAttribute("aria-label", "Fecha de cobro de " + e.descripcion);
+      inpFCobro.addEventListener("change", function () {
+        actualizar(COLECCION_PAGOS, e.id, { fechaCobro: inpFCobro.value || null });
+      });
+      tdFCobro.appendChild(inpFCobro);
+      tr.appendChild(tdFCobro);
+
+      var tdEstado = document.createElement("td");
+      var claseBadge = info.estado === "cobrado" ? "presentada"
+        : info.estado === "rojo" ? "vencido"
+        : info.estado === "amarillo" ? "hay-que-pedir" : "vigente";
+      tdEstado.appendChild(crearElemento("span", "badge " + claseBadge, info.textoEstado));
+      if (info.parcial && info.estado !== "cobrado") {
+        tdEstado.appendChild(crearElemento("span", "nota-fila", "Cobro parcial (falta " + formatMonto(info.saldo) + ")"));
+      }
+      tr.appendChild(tdEstado);
+
+      var tdAcc = crearElemento("td", "acciones-fila");
+      var btnDel = crearElemento("button", "peligro", "Eliminar");
+      btnDel.type = "button";
+      btnDel.addEventListener("click", function () {
+        if (confirm("¿Eliminar el trabajo «" + e.descripcion + "» para todos los usuarios?")) {
+          if (idEnEdicionPago === e.id) cancelarEdicionPago();
+          eliminar(COLECCION_PAGOS, e.id);
+        }
+      });
+      tdAcc.appendChild(btnDel);
+      tr.appendChild(tdAcc);
+      cuerpo.appendChild(tr);
+    });
+  }
+
   function textoDias(dias) {
     if (dias === null || dias === undefined) return "—";
     if (dias < 0) return "Vencido hace " + Math.abs(dias) + " día" + (Math.abs(dias) === 1 ? "" : "s");
@@ -1148,6 +1413,51 @@
     cancelarEdicionInsc();
   });
 
+  // ---------- Formulario PAGOS (alta y edición) ----------
+
+  var idEnEdicionPago = null;
+
+  function comenzarEdicionPago(id) {
+    var e = trabajos.find(function (x) { return x.id === id; });
+    if (!e) return;
+    idEnEdicionPago = id;
+    document.getElementById("descripcionPago").value = e.descripcion;
+    document.getElementById("clientePago").value = e.cliente || "";
+    document.getElementById("datosFactura").value = e.datosFactura || "";
+    document.getElementById("fechaFactura").value = e.fechaFactura;
+    document.getElementById("montoFacturado").value = e.monto ? String(e.monto) : "";
+    document.getElementById("montoCobrado").value = e.montoCobrado ? String(e.montoCobrado) : "";
+    document.getElementById("fechaCobro").value = e.fechaCobro || "";
+    document.getElementById("tituloFormPago").textContent = "Editar trabajo";
+    document.getElementById("btnGuardarPago").textContent = "Guardar cambios";
+    document.getElementById("btnCancelarPago").style.display = "inline-block";
+    document.getElementById("descripcionPago").focus();
+  }
+  function cancelarEdicionPago() {
+    idEnEdicionPago = null;
+    document.getElementById("formPago").reset();
+    document.getElementById("tituloFormPago").textContent = "Agregar trabajo";
+    document.getElementById("btnGuardarPago").textContent = "Agregar";
+    document.getElementById("btnCancelarPago").style.display = "none";
+  }
+  document.getElementById("btnCancelarPago").addEventListener("click", cancelarEdicionPago);
+  document.getElementById("formPago").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var datos = {
+      descripcion: document.getElementById("descripcionPago").value.trim(),
+      cliente: document.getElementById("clientePago").value.trim(),
+      datosFactura: document.getElementById("datosFactura").value.trim(),
+      fechaFactura: document.getElementById("fechaFactura").value,
+      monto: aNumero(document.getElementById("montoFacturado").value),
+      montoCobrado: aNumero(document.getElementById("montoCobrado").value),
+      fechaCobro: document.getElementById("fechaCobro").value || null
+    };
+    if (!datos.descripcion || !datos.fechaFactura) return;
+    if (idEnEdicionPago !== null) actualizar(COLECCION_PAGOS, idEnEdicionPago, datos);
+    else agregar(COLECCION_PAGOS, datos);
+    cancelarEdicionPago();
+  });
+
   // ---------- Exportar / Importar ----------
 
   function descargar(nombreArchivo, contenido) {
@@ -1200,6 +1510,28 @@
         return { nombre: x.nombre, fechaOtorgamiento: x.fechaOtorgamiento, fechaPresentacion: x.fechaPresentacion || null, numeroEntrada: x.numeroEntrada || "" };
       }));
       cancelarEdicionInsc();
+    });
+  });
+
+  document.getElementById("btnExportarPago").addEventListener("click", function () {
+    var datos = trabajos.map(function (e) {
+      return { descripcion: e.descripcion, cliente: e.cliente || "", datosFactura: e.datosFactura || "", fechaFactura: e.fechaFactura, monto: aNumero(e.monto), montoCobrado: aNumero(e.montoCobrado), fechaCobro: e.fechaCobro || null };
+    });
+    descargar("trabajos-" + hoyISO() + ".json", JSON.stringify(datos, null, 2));
+  });
+  document.getElementById("btnImportarPago").addEventListener("click", function () {
+    document.getElementById("inputImportarPago").click();
+  });
+  document.getElementById("inputImportarPago").addEventListener("change", function (ev) {
+    leerArchivo(ev, function (datos) {
+      var validas = datos.filter(function (x) {
+        return x && typeof x.descripcion === "string" && esFechaValida(x.fechaFactura);
+      });
+      if (!confirm("Se van a importar " + validas.length + " trabajos y se reemplazará el listado compartido que ven los cinco. ¿Continuar?")) return;
+      reemplazarTodo(COLECCION_PAGOS, trabajos, validas.map(function (x) {
+        return { descripcion: x.descripcion, cliente: x.cliente || "", datosFactura: x.datosFactura || "", fechaFactura: x.fechaFactura, monto: aNumero(x.monto), montoCobrado: aNumero(x.montoCobrado), fechaCobro: x.fechaCobro || null };
+      }));
+      cancelarEdicionPago();
     });
   });
 
