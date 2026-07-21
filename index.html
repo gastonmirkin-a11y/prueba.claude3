@@ -355,6 +355,14 @@
       </span>
       <span class="contador cero" id="contadorPagos">✓</span>
     </button>
+    <button type="button" class="menu-boton" id="menuFacturar">
+      <span class="icono">🧾</span>
+      <span class="texto">
+        <span class="titulo">Trabajos a facturar</span>
+        <span class="sub">Trabajos hechos pendientes de facturación. Al cargar la factura pasan solos a «Seguimiento de pagos».</span>
+      </span>
+      <span class="contador cero" id="contadorFacturar">✓</span>
+    </button>
   </div>
 
   <!-- Sección Certificados -->
@@ -558,6 +566,76 @@
     </section>
   </div>
 
+  <!-- Sección Trabajos a facturar -->
+  <div id="seccionFacturar" class="oculto">
+    <div id="alertasFacturar" class="alertas sin-alertas"></div>
+
+    <section class="panel">
+      <h2 id="tituloFormFacturar">Agregar trabajo a facturar</h2>
+      <form id="formFacturar" class="form-grid-ancho">
+        <div class="campo">
+          <label for="descripcionFacturar">Descripción del trabajo</label>
+          <input type="text" id="descripcionFacturar" required placeholder="Ej.: Escritura compraventa">
+        </div>
+        <div class="campo">
+          <label for="clienteFacturar">Cliente</label>
+          <input type="text" id="clienteFacturar" placeholder="Ej.: Juan Pérez">
+        </div>
+        <div class="campo">
+          <label for="presupuesto">Presupuesto ($)</label>
+          <input type="number" id="presupuesto" min="0" step="0.01" placeholder="0">
+        </div>
+        <div class="campo">
+          <label for="fechaTrabajo">Fecha del trabajo</label>
+          <input type="date" id="fechaTrabajo" required>
+        </div>
+        <div class="campo">
+          <label for="fechaFacturaEmitida">Fecha de factura (opcional)</label>
+          <input type="date" id="fechaFacturaEmitida">
+        </div>
+        <div class="campo">
+          <label for="numeroFacturaEmitida">N° de factura (opcional)</label>
+          <input type="text" id="numeroFacturaEmitida" placeholder="Ej.: B 0001-00012345">
+        </div>
+        <div class="campo">
+          <button type="submit" class="primario" id="btnGuardarFacturar">Agregar</button>
+          <button type="button" class="secundario" id="btnCancelarFacturar" style="display:none; margin-top:6px;">Cancelar</button>
+        </div>
+      </form>
+      <p class="nota">La fila se pinta de <strong style="color:var(--amarillo)">amarillo</strong> a los 15 días de hecho el trabajo sin facturar, y de <strong style="color:var(--rojo)">rojo</strong> a los 30 días. Cuando cargás la fecha de factura, el trabajo queda como «Facturado» y se agrega automáticamente en «Seguimiento de pagos» para llevar el cobro.</p>
+    </section>
+
+    <section class="panel">
+      <div class="barra-tabla">
+        <h2 style="margin:0;">Trabajos a facturar</h2>
+        <div class="acciones-globales">
+          <button type="button" class="secundario" id="btnExportarFacturar">Exportar respaldo</button>
+          <button type="button" class="secundario" id="btnImportarFacturar">Importar respaldo</button>
+          <input type="file" id="inputImportarFacturar" accept=".json,application/json" style="display:none;">
+        </div>
+      </div>
+      <div class="contenedor-tabla">
+        <table>
+          <thead>
+            <tr>
+              <th>Trabajo</th>
+              <th>Cliente</th>
+              <th>Presupuesto</th>
+              <th>Fecha trabajo</th>
+              <th>Días</th>
+              <th>Fecha factura</th>
+              <th>N° factura</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="cuerpoTablaFacturar"></tbody>
+        </table>
+      </div>
+      <p class="nota">Todo lo que se carga acá lo ven los cinco integrantes al instante.</p>
+    </section>
+  </div>
+
 </main>
 
 <script>
@@ -582,6 +660,7 @@
   var COLECCION_CERT = "escrituras";      // certificados (colección existente, no se renombra)
   var COLECCION_INSC = "inscripciones";   // escrituras a inscribir
   var COLECCION_PAGOS = "trabajos";       // seguimiento de pagos
+  var COLECCION_FACTURAR = "porFacturar"; // trabajos hechos pendientes de facturación
   var DIAS_AVISO = 3; // alerta cuando faltan 3 días o menos para el vencimiento
   var PLAZOS = { capital: 15, provincia: 30 }; // certificados, días corridos
   var NOMBRES_JURISDICCION = { capital: "Capital", provincia: "Provincia" };
@@ -592,9 +671,11 @@
   var certificados = [];
   var inscripciones = [];
   var trabajos = [];
+  var porFacturar = [];
   var certListos = false;
   var inscListos = false;
   var pagosListos = false;
+  var facturarListos = false;
   var fb = null; // { db, auth, fs, au } — SDK y conexiones una vez inicializado
 
   // ---------- Fechas (strings YYYY-MM-DD; aritmética a mediodía local) ----------
@@ -776,6 +857,45 @@
     return urgentes;
   }
 
+  // ---------- Lógica de negocio: TRABAJOS A FACTURAR ----------
+
+  function calcularFacturar(e) {
+    var hoy = hoyISO();
+    var info = { dias: diferenciaDias(e.fechaTrabajo, hoy), estado: null, textoEstado: null };
+    if (e.fechaFactura) {
+      info.estado = "facturado"; info.textoEstado = "Facturado";
+    } else if (info.dias >= DIAS_ROJO) {
+      info.estado = "rojo"; info.textoEstado = "+" + DIAS_ROJO + " días";
+    } else if (info.dias >= DIAS_AMARILLO) {
+      info.estado = "amarillo"; info.textoEstado = "+" + DIAS_AMARILLO + " días";
+    } else {
+      info.estado = "reciente"; info.textoEstado = "Pendiente";
+    }
+    return info;
+  }
+
+  var ORDEN_FACTURAR = { "rojo": 0, "amarillo": 1, "reciente": 2, "facturado": 3 };
+
+  function facturarOrdenados() {
+    return porFacturar.slice().sort(function (a, b) {
+      var ia = calcularFacturar(a), ib = calcularFacturar(b);
+      if (ORDEN_FACTURAR[ia.estado] !== ORDEN_FACTURAR[ib.estado]) return ORDEN_FACTURAR[ia.estado] - ORDEN_FACTURAR[ib.estado];
+      return a.fechaTrabajo < b.fechaTrabajo ? -1 : a.fechaTrabajo > b.fechaTrabajo ? 1 : 0;
+    });
+  }
+
+  function alertasFacturar() {
+    var urgentes = [];
+    porFacturar.forEach(function (e) {
+      var info = calcularFacturar(e);
+      if (info.estado === "amarillo" || info.estado === "rojo") {
+        var quien = e.cliente ? " (" + e.cliente + ")" : "";
+        urgentes.push("«" + e.descripcion + "»" + quien + ": trabajo del " + formatear(e.fechaTrabajo) + ", hace " + info.dias + " días sin facturar.");
+      }
+    });
+    return urgentes;
+  }
+
   // ---------- Pantallas y navegación ----------
 
   function mostrarPantalla(id) {
@@ -792,6 +912,7 @@
     document.getElementById("seccionCertificados").classList.toggle("oculto", nombre !== "certificados");
     document.getElementById("seccionInscripciones").classList.toggle("oculto", nombre !== "inscripciones");
     document.getElementById("seccionPagos").classList.toggle("oculto", nombre !== "pagos");
+    document.getElementById("seccionFacturar").classList.toggle("oculto", nombre !== "facturar");
     document.getElementById("btnMenu").classList.toggle("oculto", nombre === "menu");
     var titulo = document.getElementById("tituloHeader");
     var sub = document.getElementById("subtituloHeader");
@@ -804,6 +925,9 @@
     } else if (nombre === "pagos") {
       titulo.textContent = "💰 Seguimiento de pagos";
       sub.textContent = "Trabajos facturados y su cobro — amarillo a los 15 días, rojo a los 30";
+    } else if (nombre === "facturar") {
+      titulo.textContent = "🧾 Trabajos a facturar";
+      sub.textContent = "Trabajos hechos pendientes de facturación — amarillo a los 15 días, rojo a los 30";
     } else {
       titulo.textContent = "🗂️ Escribanía";
       sub.textContent = "Seguimiento notarial";
@@ -820,6 +944,7 @@
   document.getElementById("menuCertificados").addEventListener("click", function () { mostrarSeccion("certificados"); });
   document.getElementById("menuInscripciones").addEventListener("click", function () { mostrarSeccion("inscripciones"); });
   document.getElementById("menuPagos").addEventListener("click", function () { mostrarSeccion("pagos"); });
+  document.getElementById("menuFacturar").addEventListener("click", function () { mostrarSeccion("facturar"); });
   document.getElementById("btnMenu").addEventListener("click", function () { mostrarSeccion("menu"); });
 
   // ---------- Configuración de Firebase ----------
@@ -987,6 +1112,25 @@
     }, function (err) {
       alert("No se pudieron leer los trabajos: " + err.message);
     });
+    fb.fs.onSnapshot(fb.fs.collection(fb.db, COLECCION_FACTURAR), function (snap) {
+      porFacturar = snap.docs.map(function (d) {
+        var datos = d.data();
+        return {
+          id: d.id,
+          descripcion: datos.descripcion || "",
+          cliente: datos.cliente || "",
+          presupuesto: aNumero(datos.presupuesto),
+          fechaTrabajo: datos.fechaTrabajo || hoyISO(),
+          fechaFactura: datos.fechaFactura || null,
+          numeroFactura: datos.numeroFactura || "",
+          pagoCreado: !!datos.pagoCreado
+        };
+      });
+      facturarListos = true;
+      render();
+    }, function (err) {
+      alert("No se pudieron leer los trabajos a facturar: " + err.message);
+    });
   }
 
   function agregar(coleccion, datos) {
@@ -1059,16 +1203,19 @@
   }
 
   function render() {
-    var uCert = alertasCert(), uInsc = alertasInsc(), uPagos = alertasPagos();
+    var uCert = alertasCert(), uInsc = alertasInsc(), uPagos = alertasPagos(), uFact = alertasFacturar();
     pintarBanner("alertasCert", uCert, "✔ Sin alertas: no hay certificados por vencer ni pedidos atrasados.");
     pintarBanner("alertasInsc", uInsc, "✔ Sin alertas: no hay escrituras con el plazo de inscripción por vencer.");
     pintarBanner("alertasPagos", uPagos, "✔ Sin alertas: no hay trabajos con la factura atrasada sin cobrar.");
+    pintarBanner("alertasFacturar", uFact, "✔ Sin alertas: no hay trabajos hechos pendientes de facturar hace mucho.");
     actualizarContador("contadorCert", uCert.length);
     actualizarContador("contadorInsc", uInsc.length);
     actualizarContador("contadorPagos", uPagos.length);
+    actualizarContador("contadorFacturar", uFact.length);
     renderTablaCert();
     renderTablaInsc();
     renderTablaPagos();
+    renderTablaFacturar();
   }
 
   function renderTablaCert() {
@@ -1299,6 +1446,103 @@
     });
   }
 
+  // Guarda cambios en un trabajo a facturar y, si queda facturado por primera vez,
+  // lo crea automáticamente en «Seguimiento de pagos» (idempotente por pagoCreado).
+  function guardarFacturar(id, e, cambios) {
+    var resultado = Object.assign({}, e, cambios);
+    if (resultado.fechaFactura && !e.pagoCreado && !cambios.pagoCreado) {
+      agregar(COLECCION_PAGOS, {
+        descripcion: resultado.descripcion,
+        cliente: resultado.cliente || "",
+        datosFactura: resultado.numeroFactura || "",
+        fechaFactura: resultado.fechaFactura,
+        monto: aNumero(resultado.presupuesto),
+        montoCobrado: 0,
+        fechaCobro: null
+      });
+      cambios.pagoCreado = true;
+    }
+    actualizar(COLECCION_FACTURAR, id, cambios);
+  }
+
+  function renderTablaFacturar() {
+    var cuerpo = document.getElementById("cuerpoTablaFacturar");
+    cuerpo.innerHTML = "";
+    if (porFacturar.length === 0) {
+      var tr0 = document.createElement("tr");
+      var td0 = crearElemento("td", "vacio", facturarListos
+        ? "Todavía no hay trabajos a facturar. Agregá el primero con el formulario de arriba."
+        : "Cargando datos compartidos…");
+      td0.colSpan = 9; tr0.appendChild(td0); cuerpo.appendChild(tr0);
+      return;
+    }
+    facturarOrdenados().forEach(function (e) {
+      var info = calcularFacturar(e);
+      var tr = document.createElement("tr");
+      if (info.estado === "amarillo") tr.className = "fila-hay-que-pedir";
+      if (info.estado === "rojo") tr.className = "fila-vencido";
+
+      var tdDesc = crearElemento("td", null);
+      tdDesc.appendChild(document.createTextNode(e.descripcion + " "));
+      var btnEd = crearElemento("button", "enlace boton-editar-nombre", "Editar");
+      btnEd.type = "button";
+      btnEd.addEventListener("click", function () { comenzarEdicionFacturar(e.id); });
+      tdDesc.appendChild(btnEd);
+      tr.appendChild(tdDesc);
+
+      tr.appendChild(crearElemento("td", null, e.cliente || "—"));
+      tr.appendChild(crearElemento("td", "numero", formatMonto(e.presupuesto)));
+      tr.appendChild(crearElemento("td", "numero", formatear(e.fechaTrabajo)));
+      tr.appendChild(crearElemento("td", "numero", info.estado === "facturado" ? "—" : String(info.dias)));
+
+      // Fecha de factura: editable en la fila (al cargarla se crea el pago)
+      var tdFF = crearElemento("td", "numero");
+      var inpFF = document.createElement("input");
+      inpFF.type = "date";
+      inpFF.value = e.fechaFactura || "";
+      inpFF.setAttribute("aria-label", "Fecha de factura de " + e.descripcion);
+      inpFF.addEventListener("change", function () {
+        guardarFacturar(e.id, e, { fechaFactura: inpFF.value || null });
+      });
+      tdFF.appendChild(inpFF);
+      tr.appendChild(tdFF);
+
+      // N° de factura: editable en la fila
+      var tdNF = crearElemento("td", "numero");
+      var inpNF = document.createElement("input");
+      inpNF.type = "text";
+      inpNF.className = "entrada";
+      inpNF.value = e.numeroFactura || "";
+      inpNF.placeholder = "—";
+      inpNF.setAttribute("aria-label", "N° de factura de " + e.descripcion);
+      inpNF.addEventListener("change", function () {
+        actualizar(COLECCION_FACTURAR, e.id, { numeroFactura: inpNF.value.trim() });
+      });
+      tdNF.appendChild(inpNF);
+      tr.appendChild(tdNF);
+
+      var tdEstado = document.createElement("td");
+      var claseBadge = info.estado === "facturado" ? "presentada"
+        : info.estado === "rojo" ? "vencido"
+        : info.estado === "amarillo" ? "hay-que-pedir" : "vigente";
+      tdEstado.appendChild(crearElemento("span", "badge " + claseBadge, info.textoEstado));
+      tr.appendChild(tdEstado);
+
+      var tdAcc = crearElemento("td", "acciones-fila");
+      var btnDel = crearElemento("button", "peligro", "Eliminar");
+      btnDel.type = "button";
+      btnDel.addEventListener("click", function () {
+        if (confirm("¿Eliminar el trabajo «" + e.descripcion + "» para todos los usuarios?")) {
+          if (idEnEdicionFacturar === e.id) cancelarEdicionFacturar();
+          eliminar(COLECCION_FACTURAR, e.id);
+        }
+      });
+      tdAcc.appendChild(btnDel);
+      tr.appendChild(tdAcc);
+      cuerpo.appendChild(tr);
+    });
+  }
+
   function textoDias(dias) {
     if (dias === null || dias === undefined) return "—";
     if (dias < 0) return "Vencido hace " + Math.abs(dias) + " día" + (Math.abs(dias) === 1 ? "" : "s");
@@ -1458,6 +1702,62 @@
     cancelarEdicionPago();
   });
 
+  // ---------- Formulario TRABAJOS A FACTURAR (alta y edición) ----------
+
+  var idEnEdicionFacturar = null;
+
+  function comenzarEdicionFacturar(id) {
+    var e = porFacturar.find(function (x) { return x.id === id; });
+    if (!e) return;
+    idEnEdicionFacturar = id;
+    document.getElementById("descripcionFacturar").value = e.descripcion;
+    document.getElementById("clienteFacturar").value = e.cliente || "";
+    document.getElementById("presupuesto").value = e.presupuesto ? String(e.presupuesto) : "";
+    document.getElementById("fechaTrabajo").value = e.fechaTrabajo;
+    document.getElementById("fechaFacturaEmitida").value = e.fechaFactura || "";
+    document.getElementById("numeroFacturaEmitida").value = e.numeroFactura || "";
+    document.getElementById("tituloFormFacturar").textContent = "Editar trabajo a facturar";
+    document.getElementById("btnGuardarFacturar").textContent = "Guardar cambios";
+    document.getElementById("btnCancelarFacturar").style.display = "inline-block";
+    document.getElementById("descripcionFacturar").focus();
+  }
+  function cancelarEdicionFacturar() {
+    idEnEdicionFacturar = null;
+    document.getElementById("formFacturar").reset();
+    document.getElementById("tituloFormFacturar").textContent = "Agregar trabajo a facturar";
+    document.getElementById("btnGuardarFacturar").textContent = "Agregar";
+    document.getElementById("btnCancelarFacturar").style.display = "none";
+  }
+  document.getElementById("btnCancelarFacturar").addEventListener("click", cancelarEdicionFacturar);
+  document.getElementById("formFacturar").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var datos = {
+      descripcion: document.getElementById("descripcionFacturar").value.trim(),
+      cliente: document.getElementById("clienteFacturar").value.trim(),
+      presupuesto: aNumero(document.getElementById("presupuesto").value),
+      fechaTrabajo: document.getElementById("fechaTrabajo").value,
+      fechaFactura: document.getElementById("fechaFacturaEmitida").value || null,
+      numeroFactura: document.getElementById("numeroFacturaEmitida").value.trim()
+    };
+    if (!datos.descripcion || !datos.fechaTrabajo) return;
+    if (idEnEdicionFacturar !== null) {
+      var actual = porFacturar.find(function (x) { return x.id === idEnEdicionFacturar; }) || {};
+      guardarFacturar(idEnEdicionFacturar, actual, datos);
+    } else {
+      // Alta: si ya viene con fecha de factura, se crea también en pagos
+      if (datos.fechaFactura) {
+        agregar(COLECCION_PAGOS, {
+          descripcion: datos.descripcion, cliente: datos.cliente || "",
+          datosFactura: datos.numeroFactura || "", fechaFactura: datos.fechaFactura,
+          monto: aNumero(datos.presupuesto), montoCobrado: 0, fechaCobro: null
+        });
+        datos.pagoCreado = true;
+      }
+      agregar(COLECCION_FACTURAR, datos);
+    }
+    cancelarEdicionFacturar();
+  });
+
   // ---------- Exportar / Importar ----------
 
   function descargar(nombreArchivo, contenido) {
@@ -1532,6 +1832,28 @@
         return { descripcion: x.descripcion, cliente: x.cliente || "", datosFactura: x.datosFactura || "", fechaFactura: x.fechaFactura, monto: aNumero(x.monto), montoCobrado: aNumero(x.montoCobrado), fechaCobro: x.fechaCobro || null };
       }));
       cancelarEdicionPago();
+    });
+  });
+
+  document.getElementById("btnExportarFacturar").addEventListener("click", function () {
+    var datos = porFacturar.map(function (e) {
+      return { descripcion: e.descripcion, cliente: e.cliente || "", presupuesto: aNumero(e.presupuesto), fechaTrabajo: e.fechaTrabajo, fechaFactura: e.fechaFactura || null, numeroFactura: e.numeroFactura || "", pagoCreado: !!e.pagoCreado };
+    });
+    descargar("por-facturar-" + hoyISO() + ".json", JSON.stringify(datos, null, 2));
+  });
+  document.getElementById("btnImportarFacturar").addEventListener("click", function () {
+    document.getElementById("inputImportarFacturar").click();
+  });
+  document.getElementById("inputImportarFacturar").addEventListener("change", function (ev) {
+    leerArchivo(ev, function (datos) {
+      var validas = datos.filter(function (x) {
+        return x && typeof x.descripcion === "string" && esFechaValida(x.fechaTrabajo);
+      });
+      if (!confirm("Se van a importar " + validas.length + " trabajos a facturar y se reemplazará el listado compartido que ven los cinco. ¿Continuar?")) return;
+      reemplazarTodo(COLECCION_FACTURAR, porFacturar, validas.map(function (x) {
+        return { descripcion: x.descripcion, cliente: x.cliente || "", presupuesto: aNumero(x.presupuesto), fechaTrabajo: x.fechaTrabajo, fechaFactura: x.fechaFactura || null, numeroFactura: x.numeroFactura || "", pagoCreado: !!x.pagoCreado };
+      }));
+      cancelarEdicionFacturar();
     });
   });
 
