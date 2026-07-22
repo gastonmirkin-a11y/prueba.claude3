@@ -413,12 +413,12 @@
           <thead>
             <tr>
               <th>Escritura</th>
+              <th>Días restantes</th>
               <th>Jurisdicción</th>
               <th>Fecha escritura</th>
               <th>Pedir antes del</th>
               <th>Fecha de pedido</th>
               <th>Vencimiento</th>
-              <th>Días restantes</th>
               <th>Estado</th>
               <th>Acciones</th>
             </tr>
@@ -1244,6 +1244,7 @@
       tdNombre.appendChild(btnEd);
       tr.appendChild(tdNombre);
 
+      tr.appendChild(crearElemento("td", "numero", textoDias(info.diasRestantes)));
       tr.appendChild(crearElemento("td", null, NOMBRES_JURISDICCION[e.jurisdiccion] + " (" + info.plazo + " días)"));
       tr.appendChild(crearElemento("td", "numero", formatear(e.fechaEscritura)));
       tr.appendChild(crearElemento("td", "numero", formatear(info.fechaSugerida)));
@@ -1260,7 +1261,6 @@
       tr.appendChild(tdPedido);
 
       tr.appendChild(crearElemento("td", "numero", formatear(info.vencimiento)));
-      tr.appendChild(crearElemento("td", "numero", textoDias(info.diasRestantes)));
 
       var tdEstado = document.createElement("td");
       tdEstado.appendChild(crearElemento("span", "badge " + info.estado, info.textoEstado));
