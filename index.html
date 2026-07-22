@@ -1253,7 +1253,20 @@
       tr.appendChild(tdEstado);
 
       tr.appendChild(crearElemento("td", null, NOMBRES_JURISDICCION[e.jurisdiccion] + " (" + info.plazo + " días)"));
-      tr.appendChild(crearElemento("td", "numero", formatear(e.fechaEscritura)));
+
+      // Fecha de la escritura: editable en la fila (es obligatoria, no se permite vaciar)
+      var tdEsc = crearElemento("td", "numero");
+      var inpEsc = document.createElement("input");
+      inpEsc.type = "date";
+      inpEsc.value = e.fechaEscritura;
+      inpEsc.setAttribute("aria-label", "Fecha de la escritura de " + e.nombre);
+      inpEsc.addEventListener("change", function () {
+        if (inpEsc.value) actualizar(COLECCION_CERT, e.id, { fechaEscritura: inpEsc.value });
+        else inpEsc.value = e.fechaEscritura; // no se puede dejar vacía
+      });
+      tdEsc.appendChild(inpEsc);
+      tr.appendChild(tdEsc);
+
       tr.appendChild(crearElemento("td", "numero", formatear(info.fechaSugerida)));
 
       var tdPedido = crearElemento("td", "numero");
