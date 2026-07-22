@@ -487,7 +487,7 @@
           <tbody id="cuerpoTablaInsc"></tbody>
         </table>
       </div>
-      <p class="nota">💡 El botón «📅 Recordatorio» crea un evento en tu Google Calendar 3 días antes del vencimiento del plazo de inscripción.</p>
+      <p class="nota">💡 El botón «📅 Recordatorio» crea un evento en tu Google Calendar 15 días antes del vencimiento del plazo de inscripción.</p>
     </section>
   </div>
 
@@ -661,7 +661,8 @@
   var COLECCION_INSC = "inscripciones";   // escrituras a inscribir
   var COLECCION_PAGOS = "trabajos";       // seguimiento de pagos
   var COLECCION_FACTURAR = "porFacturar"; // trabajos hechos pendientes de facturación
-  var DIAS_AVISO = 3; // alerta cuando faltan 3 días o menos para el vencimiento
+  var DIAS_AVISO_CERT = 5;  // certificados: alerta cuando faltan 5 días o menos
+  var DIAS_AVISO_INSC = 15; // inscripciones: alerta cuando faltan 15 días o menos
   var PLAZOS = { capital: 15, provincia: 30 }; // certificados, días corridos
   var NOMBRES_JURISDICCION = { capital: "Capital", provincia: "Provincia" };
   var PLAZO_INSC = 45; // inscripción: días corridos desde el día siguiente al otorgamiento
@@ -726,7 +727,7 @@
       info.diasRestantes = diferenciaDias(hoy, info.vencimiento);
       info.noLlega = diferenciaDias(info.vencimiento, e.fechaEscritura) > 0;
       if (info.diasRestantes < 0) { info.estado = "vencido"; info.textoEstado = "Vencido"; }
-      else if (info.diasRestantes <= DIAS_AVISO) { info.estado = "por-vencer"; info.textoEstado = info.diasRestantes === 0 ? "¡Vence hoy!" : "Por vencer"; }
+      else if (info.diasRestantes <= DIAS_AVISO_CERT) { info.estado = "por-vencer"; info.textoEstado = info.diasRestantes === 0 ? "¡Vence hoy!" : "Por vencer"; }
       else { info.estado = "vigente"; info.textoEstado = "Vigente"; }
     } else {
       if (diferenciaDias(info.fechaSugerida, hoy) >= 0) { info.estado = "hay-que-pedir"; info.textoEstado = "Hay que pedir"; }
@@ -780,7 +781,7 @@
       info.estado = "presentada"; info.textoEstado = "Presentada";
     } else if (info.diasRestantes < 0) {
       info.estado = "vencido"; info.textoEstado = "Fuera de plazo";
-    } else if (info.diasRestantes <= DIAS_AVISO) {
+    } else if (info.diasRestantes <= DIAS_AVISO_INSC) {
       info.estado = "por-vencer"; info.textoEstado = info.diasRestantes === 0 ? "¡Vence hoy!" : "Por vencer";
     } else {
       info.estado = "vigente"; info.textoEstado = "En plazo";
@@ -1564,7 +1565,7 @@
 
   function calendarioCert(e, info) {
     if (e.fechaPedido) {
-      abrirCalendario("Vencen certificados – " + e.nombre, sumarDias(info.vencimiento, -DIAS_AVISO),
+      abrirCalendario("Vencen certificados – " + e.nombre, sumarDias(info.vencimiento, -DIAS_AVISO_CERT),
         "Los certificados de la escritura «" + e.nombre + "» (" + NOMBRES_JURISDICCION[e.jurisdiccion] +
         ") vencen el " + formatear(info.vencimiento) + ". Escritura prevista para el " + formatear(e.fechaEscritura) + ".");
     } else {
@@ -1575,7 +1576,7 @@
   }
 
   function calendarioInsc(e, info) {
-    abrirCalendario("Inscribir escritura – " + e.nombre, sumarDias(info.vencimiento, -DIAS_AVISO),
+    abrirCalendario("Inscribir escritura – " + e.nombre, sumarDias(info.vencimiento, -DIAS_AVISO_INSC),
       "Presentar para inscripción en el Registro de la Propiedad Inmueble la escritura «" + e.nombre +
       "» (otorgada el " + formatear(e.fechaOtorgamiento) + "). El plazo de 45 días vence el " + formatear(info.vencimiento) + ".");
   }
