@@ -475,12 +475,12 @@
           <thead>
             <tr>
               <th>Escritura</th>
+              <th>Estado</th>
               <th>Fecha otorgamiento</th>
               <th>Inscribir antes del</th>
               <th>Días restantes</th>
               <th>Fecha presentación</th>
               <th>N° entrada</th>
-              <th>Estado</th>
               <th>Acciones</th>
             </tr>
           </thead>
@@ -619,13 +619,13 @@
           <thead>
             <tr>
               <th>Trabajo</th>
+              <th>Estado</th>
               <th>Cliente</th>
               <th>Presupuesto</th>
               <th>Fecha trabajo</th>
               <th>Días</th>
               <th>Fecha factura</th>
               <th>N° factura</th>
-              <th>Estado</th>
               <th>Acciones</th>
             </tr>
           </thead>
@@ -1313,6 +1313,10 @@
       tdNombre.appendChild(btnEd);
       tr.appendChild(tdNombre);
 
+      var tdEstado = document.createElement("td");
+      tdEstado.appendChild(crearElemento("span", "badge " + info.estado, info.textoEstado));
+      tr.appendChild(tdEstado);
+
       tr.appendChild(crearElemento("td", "numero", formatear(e.fechaOtorgamiento)));
       tr.appendChild(crearElemento("td", "numero", formatear(info.vencimiento)));
       tr.appendChild(crearElemento("td", "numero", info.estado === "presentada" ? "—" : textoDias(info.diasRestantes)));
@@ -1340,10 +1344,6 @@
       });
       tdEntrada.appendChild(inpEntrada);
       tr.appendChild(tdEntrada);
-
-      var tdEstado = document.createElement("td");
-      tdEstado.appendChild(crearElemento("span", "badge " + info.estado, info.textoEstado));
-      tr.appendChild(tdEstado);
 
       var tdAcc = crearElemento("td", "acciones-fila");
       if (info.estado !== "presentada") {
@@ -1492,6 +1492,13 @@
       tdDesc.appendChild(btnEd);
       tr.appendChild(tdDesc);
 
+      var tdEstado = document.createElement("td");
+      var claseBadge = info.estado === "facturado" ? "presentada"
+        : info.estado === "rojo" ? "vencido"
+        : info.estado === "amarillo" ? "hay-que-pedir" : "vigente";
+      tdEstado.appendChild(crearElemento("span", "badge " + claseBadge, info.textoEstado));
+      tr.appendChild(tdEstado);
+
       tr.appendChild(crearElemento("td", null, e.cliente || "—"));
       tr.appendChild(crearElemento("td", "numero", formatMonto(e.presupuesto)));
       tr.appendChild(crearElemento("td", "numero", formatear(e.fechaTrabajo)));
@@ -1522,13 +1529,6 @@
       });
       tdNF.appendChild(inpNF);
       tr.appendChild(tdNF);
-
-      var tdEstado = document.createElement("td");
-      var claseBadge = info.estado === "facturado" ? "presentada"
-        : info.estado === "rojo" ? "vencido"
-        : info.estado === "amarillo" ? "hay-que-pedir" : "vigente";
-      tdEstado.appendChild(crearElemento("span", "badge " + claseBadge, info.textoEstado));
-      tr.appendChild(tdEstado);
 
       var tdAcc = crearElemento("td", "acciones-fila");
       var btnDel = crearElemento("button", "peligro", "Eliminar");
