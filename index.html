@@ -192,6 +192,25 @@
   }
   .barra-tabla .acciones-globales { display: flex; gap: 8px; }
 
+  .fila-buscar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .buscador {
+    flex: 1;
+    min-width: 220px;
+    max-width: 420px;
+    padding: 8px 12px;
+    border: 1px solid var(--gris-borde);
+    border-radius: 6px;
+    font-size: 0.95rem;
+  }
+  .buscador:focus { outline: 2px solid var(--azul-claro); border-color: var(--azul-claro); }
+  .resumen { font-size: 0.85rem; color: var(--gris-texto); font-weight: 600; }
+
   .contenedor-tabla { overflow-x: auto; }
   table {
     width: 100%;
@@ -543,6 +562,10 @@
           <input type="file" id="inputImportarPago" accept=".json,application/json" style="display:none;">
         </div>
       </div>
+      <div class="fila-buscar">
+        <input type="search" id="buscarPagos" class="buscador" placeholder="Buscar por cliente, trabajo o factura…" aria-label="Buscar trabajos por cliente">
+        <span class="resumen" id="resumenPagos"></span>
+      </div>
       <div class="contenedor-tabla">
         <table>
           <thead>
@@ -614,6 +637,10 @@
           <input type="file" id="inputImportarFacturar" accept=".json,application/json" style="display:none;">
         </div>
       </div>
+      <div class="fila-buscar">
+        <input type="search" id="buscarFacturar" class="buscador" placeholder="Buscar por cliente o trabajo…" aria-label="Buscar trabajos a facturar por cliente">
+        <span class="resumen" id="resumenFacturar"></span>
+      </div>
       <div class="contenedor-tabla">
         <table>
           <thead>
@@ -677,6 +704,8 @@
   var inscListos = false;
   var pagosListos = false;
   var facturarListos = false;
+  var filtroPagos = "";
+  var filtroFacturar = "";
   var fb = null; // { db, auth, fs, au } — SDK y conexiones una vez inicializado
 
   // ---------- Fechas (strings YYYY-MM-DD; aritmética a mediodía local) ----------
@@ -707,6 +736,7 @@
   function esFechaValida(iso) { return /^\d{4}-\d{2}-\d{2}$/.test(iso || ""); }
   function aNumero(v) { var n = Number(v); return isNaN(n) || n < 0 ? 0 : n; }
   function formatMonto(n) { return "$" + aNumero(n).toLocaleString("es-AR"); }
+  function normaliza(s) { return (s == null ? "" : String(s)).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(); }
 
   // ---------- Lógica de negocio: CERTIFICADOS ----------
 
@@ -1382,15 +1412,29 @@
   function renderTablaPagos() {
     var cuerpo = document.getElementById("cuerpoTablaPagos");
     cuerpo.innerHTML = "";
-    if (trabajos.length === 0) {
+
+    var termino = normaliza(filtroPagos);
+    var lista = pagosOrdenados().filter(function (e) {
+      if (!termino) return true;
+      return normaliza(e.cliente).indexOf(termino) !== -1
+        || normaliza(e.descripcion).indexOf(termino) !== -1
+        || normaliza(e.datosFactura).indexOf(termino) !== -1;
+    });
+
+    // Resumen: cantidad de resultados y total adeudado (pendiente de cobro) sobre lo filtrado
+    var adeudado = lista.reduce(function (acc, e) { return acc + Math.max(0, aNumero(e.monto) - aNumero(e.montoCobrado)); }, 0);
+    document.getElementById("resumenPagos").textContent = trabajos.length === 0 ? ""
+      : lista.length + (lista.length === 1 ? " resultado" : " resultados") + " · Pendiente de cobro: " + formatMonto(adeudado);
+
+    if (lista.length === 0) {
       var tr0 = document.createElement("tr");
-      var td0 = crearElemento("td", "vacio", pagosListos
-        ? "Todavía no hay trabajos cargados. Agregá el primero con el formulario de arriba."
-        : "Cargando datos compartidos…");
+      var td0 = crearElemento("td", "vacio", trabajos.length === 0
+        ? (pagosListos ? "Todavía no hay trabajos cargados. Agregá el primero con el formulario de arriba." : "Cargando datos compartidos…")
+        : "No hay resultados para «" + filtroPagos + "».");
       td0.colSpan = 10; tr0.appendChild(td0); cuerpo.appendChild(tr0);
       return;
     }
-    pagosOrdenados().forEach(function (e) {
+    lista.forEach(function (e) {
       var info = calcularPago(e);
       var tr = document.createElement("tr");
       if (info.estado === "amarillo") tr.className = "fila-hay-que-pedir";
@@ -1483,15 +1527,29 @@
   function renderTablaFacturar() {
     var cuerpo = document.getElementById("cuerpoTablaFacturar");
     cuerpo.innerHTML = "";
-    if (porFacturar.length === 0) {
+
+    var termino = normaliza(filtroFacturar);
+    var lista = facturarOrdenados().filter(function (e) {
+      if (!termino) return true;
+      return normaliza(e.cliente).indexOf(termino) !== -1
+        || normaliza(e.descripcion).indexOf(termino) !== -1
+        || normaliza(e.numeroFactura).indexOf(termino) !== -1;
+    });
+
+    // Resumen: cantidad de resultados y total pendiente de facturar (presupuesto de los no facturados)
+    var porFacturarTotal = lista.reduce(function (acc, e) { return acc + (e.fechaFactura ? 0 : aNumero(e.presupuesto)); }, 0);
+    document.getElementById("resumenFacturar").textContent = porFacturar.length === 0 ? ""
+      : lista.length + (lista.length === 1 ? " resultado" : " resultados") + " · Pendiente de facturar: " + formatMonto(porFacturarTotal);
+
+    if (lista.length === 0) {
       var tr0 = document.createElement("tr");
-      var td0 = crearElemento("td", "vacio", facturarListos
-        ? "Todavía no hay trabajos a facturar. Agregá el primero con el formulario de arriba."
-        : "Cargando datos compartidos…");
+      var td0 = crearElemento("td", "vacio", porFacturar.length === 0
+        ? (facturarListos ? "Todavía no hay trabajos a facturar. Agregá el primero con el formulario de arriba." : "Cargando datos compartidos…")
+        : "No hay resultados para «" + filtroFacturar + "».");
       td0.colSpan = 9; tr0.appendChild(td0); cuerpo.appendChild(tr0);
       return;
     }
-    facturarOrdenados().forEach(function (e) {
+    lista.forEach(function (e) {
       var info = calcularFacturar(e);
       var tr = document.createElement("tr");
       if (info.estado === "amarillo") tr.className = "fila-hay-que-pedir";
@@ -1826,6 +1884,15 @@
       }));
       cancelarEdicionInsc();
     });
+  });
+
+  document.getElementById("buscarPagos").addEventListener("input", function () {
+    filtroPagos = this.value;
+    renderTablaPagos();
+  });
+  document.getElementById("buscarFacturar").addEventListener("input", function () {
+    filtroFacturar = this.value;
+    renderTablaFacturar();
   });
 
   document.getElementById("btnExportarPago").addEventListener("click", function () {
