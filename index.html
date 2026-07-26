@@ -276,13 +276,22 @@
   button.peligro:hover { background: var(--rojo-fondo); }
   button.enlace { background: transparent; color: var(--azul-claro); padding: 4px 8px; font-size: 0.85rem; }
   button.enlace:hover { background: var(--gris-fondo); }
-  button.boton-editar-nombre {
+  /* Botones de acción de la fila, pegados al nombre */
+  .acciones-nombre {
+    display: inline-flex;
+    gap: 4px;
+    margin-left: 4px;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  button.boton-fila {
     padding: 1px 7px;
     font-size: 0.72rem;
-    border: 1px solid var(--azul-claro);
     border-radius: 999px;
     vertical-align: middle;
   }
+  button.boton-fila.enlace { border: 1px solid var(--azul-claro); }
+  button.boton-fila.peligro { border: 1px solid var(--rojo); }
 
   .barra-tabla {
     display: flex;
@@ -390,7 +399,6 @@
     padding: 30px 10px !important;
     font-style: italic;
   }
-  .acciones-fila { white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -589,7 +597,6 @@
               <th>Pedir antes del</th>
               <th>Fecha de pedido</th>
               <th>Vencimiento</th>
-              <th>Acciones</th>
             </tr>
           </thead>
           <tbody id="cuerpoTablaCert"></tbody>
@@ -650,7 +657,6 @@
               <th>Días restantes</th>
               <th>Fecha presentación</th>
               <th>N° entrada</th>
-              <th>Acciones</th>
             </tr>
           </thead>
           <tbody id="cuerpoTablaInsc"></tbody>
@@ -729,7 +735,6 @@
               <th>Cobrado</th>
               <th>Fecha cobro</th>
               <th>Estado</th>
-              <th>Acciones</th>
             </tr>
           </thead>
           <tbody id="cuerpoTablaPagos"></tbody>
@@ -803,7 +808,6 @@
               <th>Días</th>
               <th>Fecha factura</th>
               <th>N° factura</th>
-              <th>Acciones</th>
             </tr>
           </thead>
           <tbody id="cuerpoTablaFacturar"></tbody>
@@ -856,7 +860,6 @@
               <th>Fecha de pago</th>
               <th>Monto pagado</th>
               <th>Mes anterior</th>
-              <th>Acciones</th>
             </tr>
           </thead>
           <tbody id="cuerpoTablaServ"></tbody>
@@ -909,7 +912,6 @@
               <th>Fecha de pago</th>
               <th>Monto pagado</th>
               <th>Mes anterior</th>
-              <th>Acciones</th>
             </tr>
           </thead>
           <tbody id="cuerpoTablaCargas"></tbody>
@@ -1591,6 +1593,25 @@
     return el;
   }
 
+  function botonFila(clase, texto, alClic) {
+    var b = crearElemento("button", "boton-fila " + clase, texto);
+    b.type = "button";
+    b.addEventListener("click", alClic);
+    return b;
+  }
+
+  // Celda del nombre con los botones de acción al lado (Editar · Eliminar · Recordatorio)
+  function celdaNombre(texto, op) {
+    var td = crearElemento("td", null);
+    td.appendChild(document.createTextNode(texto));
+    var acc = crearElemento("span", "acciones-nombre");
+    acc.appendChild(botonFila("enlace", "Editar", op.editar));
+    acc.appendChild(botonFila("peligro", "Eliminar", op.eliminar));
+    if (op.recordatorio) acc.appendChild(botonFila("enlace", "📅 Recordatorio", op.recordatorio));
+    td.appendChild(acc);
+    return td;
+  }
+
   function pintarBanner(contId, urgentes, textoOk) {
     var cont = document.getElementById(contId);
     cont.innerHTML = "";
@@ -1718,7 +1739,7 @@
       var td0 = crearElemento("td", "vacio", certListos
         ? "Todavía no hay certificados cargados. Agregá el primero con el formulario de arriba."
         : "Cargando datos compartidos…");
-      td0.colSpan = 9; tr0.appendChild(td0); cuerpo.appendChild(tr0);
+      td0.colSpan = 8; tr0.appendChild(td0); cuerpo.appendChild(tr0);
       return;
     }
     certOrdenados().forEach(function (e) {
@@ -1728,13 +1749,16 @@
       if (info.estado === "vencido") tr.className = "fila-vencido";
       if (info.estado === "hay-que-pedir") tr.className = "fila-hay-que-pedir";
 
-      var tdNombre = crearElemento("td", null);
-      tdNombre.appendChild(document.createTextNode(e.nombre + " "));
-      var btnEd = crearElemento("button", "enlace boton-editar-nombre", "Editar");
-      btnEd.type = "button";
-      btnEd.addEventListener("click", function () { comenzarEdicionCert(e.id); });
-      tdNombre.appendChild(btnEd);
-      tr.appendChild(tdNombre);
+      tr.appendChild(celdaNombre(e.nombre, {
+        editar: function () { comenzarEdicionCert(e.id); },
+        eliminar: function () {
+          if (confirm("¿Eliminar el certificado «" + e.nombre + "» para todos los usuarios?")) {
+            if (idEnEdicionCert === e.id) cancelarEdicionCert();
+            eliminar(COLECCION_CERT, e.id);
+          }
+        },
+        recordatorio: function () { calendarioCert(e, info); }
+      }));
 
       tr.appendChild(crearElemento("td", "numero", textoDias(info.diasRestantes)));
 
@@ -1773,21 +1797,6 @@
 
       tr.appendChild(crearElemento("td", "numero", formatear(info.vencimiento)));
 
-      var tdAcc = crearElemento("td", "acciones-fila");
-      var btnCal = crearElemento("button", "enlace", "📅 Recordatorio");
-      btnCal.type = "button";
-      btnCal.addEventListener("click", function () { calendarioCert(e, info); });
-      tdAcc.appendChild(btnCal);
-      var btnDel = crearElemento("button", "peligro", "Eliminar");
-      btnDel.type = "button";
-      btnDel.addEventListener("click", function () {
-        if (confirm("¿Eliminar el certificado «" + e.nombre + "» para todos los usuarios?")) {
-          if (idEnEdicionCert === e.id) cancelarEdicionCert();
-          eliminar(COLECCION_CERT, e.id);
-        }
-      });
-      tdAcc.appendChild(btnDel);
-      tr.appendChild(tdAcc);
       cuerpo.appendChild(tr);
     });
   }
@@ -1800,7 +1809,7 @@
       var td0 = crearElemento("td", "vacio", inscListos
         ? "Todavía no hay escrituras a inscribir. Agregá la primera con el formulario de arriba."
         : "Cargando datos compartidos…");
-      td0.colSpan = 8; tr0.appendChild(td0); cuerpo.appendChild(tr0);
+      td0.colSpan = 7; tr0.appendChild(td0); cuerpo.appendChild(tr0);
       return;
     }
     inscOrdenadas().forEach(function (e) {
@@ -1809,13 +1818,16 @@
       if (info.estado === "por-vencer") tr.className = "fila-por-vencer";
       if (info.estado === "vencido") tr.className = "fila-vencido";
 
-      var tdNombre = crearElemento("td", null);
-      tdNombre.appendChild(document.createTextNode(e.nombre + " "));
-      var btnEd = crearElemento("button", "enlace boton-editar-nombre", "Editar");
-      btnEd.type = "button";
-      btnEd.addEventListener("click", function () { comenzarEdicionInsc(e.id); });
-      tdNombre.appendChild(btnEd);
-      tr.appendChild(tdNombre);
+      tr.appendChild(celdaNombre(e.nombre, {
+        editar: function () { comenzarEdicionInsc(e.id); },
+        eliminar: function () {
+          if (confirm("¿Eliminar la escritura «" + e.nombre + "» de la lista de inscripción, para todos los usuarios?")) {
+            if (idEnEdicionInsc === e.id) cancelarEdicionInsc();
+            eliminar(COLECCION_INSC, e.id);
+          }
+        },
+        recordatorio: info.estado !== "presentada" ? function () { calendarioInsc(e, info); } : null
+      }));
 
       var tdEstado = document.createElement("td");
       tdEstado.appendChild(crearElemento("span", "badge " + info.estado, info.textoEstado));
@@ -1849,23 +1861,6 @@
       tdEntrada.appendChild(inpEntrada);
       tr.appendChild(tdEntrada);
 
-      var tdAcc = crearElemento("td", "acciones-fila");
-      if (info.estado !== "presentada") {
-        var btnCal = crearElemento("button", "enlace", "📅 Recordatorio");
-        btnCal.type = "button";
-        btnCal.addEventListener("click", function () { calendarioInsc(e, info); });
-        tdAcc.appendChild(btnCal);
-      }
-      var btnDel = crearElemento("button", "peligro", "Eliminar");
-      btnDel.type = "button";
-      btnDel.addEventListener("click", function () {
-        if (confirm("¿Eliminar la escritura «" + e.nombre + "» de la lista de inscripción, para todos los usuarios?")) {
-          if (idEnEdicionInsc === e.id) cancelarEdicionInsc();
-          eliminar(COLECCION_INSC, e.id);
-        }
-      });
-      tdAcc.appendChild(btnDel);
-      tr.appendChild(tdAcc);
       cuerpo.appendChild(tr);
     });
   }
@@ -1892,7 +1887,7 @@
       var td0 = crearElemento("td", "vacio", trabajos.length === 0
         ? (pagosListos ? "Todavía no hay trabajos cargados. Agregá el primero con el formulario de arriba." : "Cargando datos compartidos…")
         : "No hay resultados para «" + filtroPagos + "».");
-      td0.colSpan = 10; tr0.appendChild(td0); cuerpo.appendChild(tr0);
+      td0.colSpan = 9; tr0.appendChild(td0); cuerpo.appendChild(tr0);
       return;
     }
     lista.forEach(function (e) {
@@ -1901,13 +1896,15 @@
       if (info.estado === "amarillo") tr.className = "fila-hay-que-pedir";
       if (info.estado === "rojo") tr.className = "fila-vencido";
 
-      var tdDesc = crearElemento("td", null);
-      tdDesc.appendChild(document.createTextNode(e.descripcion + " "));
-      var btnEd = crearElemento("button", "enlace boton-editar-nombre", "Editar");
-      btnEd.type = "button";
-      btnEd.addEventListener("click", function () { comenzarEdicionPago(e.id); });
-      tdDesc.appendChild(btnEd);
-      tr.appendChild(tdDesc);
+      tr.appendChild(celdaNombre(e.descripcion, {
+        editar: function () { comenzarEdicionPago(e.id); },
+        eliminar: function () {
+          if (confirm("¿Eliminar el trabajo «" + e.descripcion + "» para todos los usuarios?")) {
+            if (idEnEdicionPago === e.id) cancelarEdicionPago();
+            eliminar(COLECCION_PAGOS, e.id);
+          }
+        }
+      }));
 
       tr.appendChild(crearElemento("td", null, e.cliente || "—"));
       tr.appendChild(crearElemento("td", null, e.datosFactura || "—"));
@@ -1951,17 +1948,6 @@
       }
       tr.appendChild(tdEstado);
 
-      var tdAcc = crearElemento("td", "acciones-fila");
-      var btnDel = crearElemento("button", "peligro", "Eliminar");
-      btnDel.type = "button";
-      btnDel.addEventListener("click", function () {
-        if (confirm("¿Eliminar el trabajo «" + e.descripcion + "» para todos los usuarios?")) {
-          if (idEnEdicionPago === e.id) cancelarEdicionPago();
-          eliminar(COLECCION_PAGOS, e.id);
-        }
-      });
-      tdAcc.appendChild(btnDel);
-      tr.appendChild(tdAcc);
       cuerpo.appendChild(tr);
     });
   }
@@ -2007,7 +1993,7 @@
       var td0 = crearElemento("td", "vacio", porFacturar.length === 0
         ? (facturarListos ? "Todavía no hay trabajos a facturar. Agregá el primero con el formulario de arriba." : "Cargando datos compartidos…")
         : "No hay resultados para «" + filtroFacturar + "».");
-      td0.colSpan = 9; tr0.appendChild(td0); cuerpo.appendChild(tr0);
+      td0.colSpan = 8; tr0.appendChild(td0); cuerpo.appendChild(tr0);
       return;
     }
     lista.forEach(function (e) {
@@ -2016,13 +2002,15 @@
       if (info.estado === "amarillo") tr.className = "fila-hay-que-pedir";
       if (info.estado === "rojo") tr.className = "fila-vencido";
 
-      var tdDesc = crearElemento("td", null);
-      tdDesc.appendChild(document.createTextNode(e.descripcion + " "));
-      var btnEd = crearElemento("button", "enlace boton-editar-nombre", "Editar");
-      btnEd.type = "button";
-      btnEd.addEventListener("click", function () { comenzarEdicionFacturar(e.id); });
-      tdDesc.appendChild(btnEd);
-      tr.appendChild(tdDesc);
+      tr.appendChild(celdaNombre(e.descripcion, {
+        editar: function () { comenzarEdicionFacturar(e.id); },
+        eliminar: function () {
+          if (confirm("¿Eliminar el trabajo «" + e.descripcion + "» para todos los usuarios?")) {
+            if (idEnEdicionFacturar === e.id) cancelarEdicionFacturar();
+            eliminar(COLECCION_FACTURAR, e.id);
+          }
+        }
+      }));
 
       var tdEstado = document.createElement("td");
       var claseBadge = info.estado === "facturado" ? "presentada"
@@ -2062,17 +2050,6 @@
       tdNF.appendChild(inpNF);
       tr.appendChild(tdNF);
 
-      var tdAcc = crearElemento("td", "acciones-fila");
-      var btnDel = crearElemento("button", "peligro", "Eliminar");
-      btnDel.type = "button";
-      btnDel.addEventListener("click", function () {
-        if (confirm("¿Eliminar el trabajo «" + e.descripcion + "» para todos los usuarios?")) {
-          if (idEnEdicionFacturar === e.id) cancelarEdicionFacturar();
-          eliminar(COLECCION_FACTURAR, e.id);
-        }
-      });
-      tdAcc.appendChild(btnDel);
-      tr.appendChild(tdAcc);
       cuerpo.appendChild(tr);
     });
   }
@@ -2100,7 +2077,7 @@
       var td0 = crearElemento("td", "vacio", mensualesListos[cfg.col]
         ? "Todavía no hay conceptos cargados. Agregá el primero con el formulario de arriba."
         : "Cargando datos compartidos…");
-      td0.colSpan = 8; tr0.appendChild(td0); cuerpo.appendChild(tr0);
+      td0.colSpan = 7; tr0.appendChild(td0); cuerpo.appendChild(tr0);
       return;
     }
     var mesAnt = mesAnteriorISO();
@@ -2110,13 +2087,15 @@
       if (info.estado === "por-vencer") tr.className = "fila-hay-que-pedir";
       if (info.estado === "vencido") tr.className = "fila-vencido";
 
-      var tdNombre = crearElemento("td", null);
-      tdNombre.appendChild(document.createTextNode(e.nombre + " "));
-      var btnEd = crearElemento("button", "enlace boton-editar-nombre", "Editar");
-      btnEd.type = "button";
-      btnEd.addEventListener("click", function () { comenzarEdicionMensual(cfg, e.id); });
-      tdNombre.appendChild(btnEd);
-      tr.appendChild(tdNombre);
+      tr.appendChild(celdaNombre(e.nombre, {
+        editar: function () { comenzarEdicionMensual(cfg, e.id); },
+        eliminar: function () {
+          if (confirm("¿Eliminar el concepto «" + e.nombre + "» y su historial de pagos, para todos los usuarios?")) {
+            if (idEnEdicionMensual[cfg.col] === e.id) cancelarEdicionMensual(cfg);
+            eliminar(cfg.col, e.id);
+          }
+        }
+      }));
 
       var tdEstado = document.createElement("td");
       var claseBadge = info.estado === "pagado" ? "presentada"
@@ -2160,17 +2139,6 @@
         ? formatear(pagoAnt.fecha) + " · " + formatMonto(pagoAnt.monto)
         : "—"));
 
-      var tdAcc = crearElemento("td", "acciones-fila");
-      var btnDel = crearElemento("button", "peligro", "Eliminar");
-      btnDel.type = "button";
-      btnDel.addEventListener("click", function () {
-        if (confirm("¿Eliminar el concepto «" + e.nombre + "» y su historial de pagos, para todos los usuarios?")) {
-          if (idEnEdicionMensual[cfg.col] === e.id) cancelarEdicionMensual(cfg);
-          eliminar(cfg.col, e.id);
-        }
-      });
-      tdAcc.appendChild(btnDel);
-      tr.appendChild(tdAcc);
       cuerpo.appendChild(tr);
     });
   }
