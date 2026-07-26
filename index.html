@@ -43,14 +43,47 @@
   header h1 { margin: 0; font-size: 1.45rem; font-weight: 600; }
   header p { margin: 4px 0 0; font-size: 0.9rem; opacity: 0.85; }
   .acciones-header { display: flex; gap: 8px; align-items: center; }
-  #btnSalir, #btnMenu {
+  #btnSalir {
     background: rgba(255,255,255,0.15);
     color: var(--blanco);
     font-size: 0.85rem;
     padding: 7px 14px;
   }
-  #btnSalir:hover, #btnMenu:hover { background: rgba(255,255,255,0.28); }
+  #btnSalir:hover { background: rgba(255,255,255,0.28); }
   main { max-width: 1200px; margin: 0 auto; padding: 20px 24px 60px; }
+
+  /* Barra de navegación entre secciones */
+  #navSecciones {
+    background: var(--azul-claro);
+    padding: 6px 20px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .nav-tab {
+    background: transparent;
+    color: rgba(255,255,255,0.85);
+    font-size: 0.9rem;
+    padding: 7px 14px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .nav-tab:hover { background: rgba(255,255,255,0.15); color: var(--blanco); }
+  .nav-tab.activa { background: var(--blanco); color: var(--azul); font-weight: 700; }
+  .nav-badge {
+    display: inline-block;
+    background: var(--rojo);
+    color: var(--blanco);
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 1px 7px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
 
   .alertas {
     border-radius: 8px;
@@ -299,10 +332,18 @@
     <p id="subtituloHeader">Seguimiento notarial</p>
   </div>
   <div class="acciones-header">
-    <button type="button" id="btnMenu" class="oculto">← Menú</button>
     <button type="button" id="btnSalir" class="oculto">Salir</button>
   </div>
 </header>
+
+<!-- Barra de navegación entre secciones (visible dentro de una sección) -->
+<nav id="navSecciones" class="oculto">
+  <button type="button" class="nav-tab" id="btnMenu">🏠 Inicio</button>
+  <button type="button" class="nav-tab" id="navCert" data-seccion="certificados">📋 Certificados <span class="nav-badge oculto" id="navBadgeCert"></span></button>
+  <button type="button" class="nav-tab" id="navInsc" data-seccion="inscripciones">🏛️ Inscripciones <span class="nav-badge oculto" id="navBadgeInsc"></span></button>
+  <button type="button" class="nav-tab" id="navPagos" data-seccion="pagos">💰 Pagos <span class="nav-badge oculto" id="navBadgePagos"></span></button>
+  <button type="button" class="nav-tab" id="navFacturar" data-seccion="facturar">🧾 A facturar <span class="nav-badge oculto" id="navBadgeFacturar"></span></button>
+</nav>
 
 <!-- Pantalla: falta configurar Firebase -->
 <div id="pantallaConfig" class="tarjeta oculto">
@@ -935,7 +976,7 @@
     });
     document.getElementById("btnSalir").classList.toggle("oculto", id !== "app");
     if (id === "app") mostrarSeccion("menu");
-    else document.getElementById("btnMenu").classList.add("oculto");
+    else document.getElementById("navSecciones").classList.add("oculto");
   }
 
   function mostrarSeccion(nombre) {
@@ -944,7 +985,10 @@
     document.getElementById("seccionInscripciones").classList.toggle("oculto", nombre !== "inscripciones");
     document.getElementById("seccionPagos").classList.toggle("oculto", nombre !== "pagos");
     document.getElementById("seccionFacturar").classList.toggle("oculto", nombre !== "facturar");
-    document.getElementById("btnMenu").classList.toggle("oculto", nombre === "menu");
+    document.getElementById("navSecciones").classList.toggle("oculto", nombre === "menu");
+    document.querySelectorAll("#navSecciones .nav-tab").forEach(function (tab) {
+      tab.classList.toggle("activa", tab.dataset.seccion === nombre);
+    });
     var titulo = document.getElementById("tituloHeader");
     var sub = document.getElementById("subtituloHeader");
     if (nombre === "certificados") {
@@ -977,6 +1021,9 @@
   document.getElementById("menuPagos").addEventListener("click", function () { mostrarSeccion("pagos"); });
   document.getElementById("menuFacturar").addEventListener("click", function () { mostrarSeccion("facturar"); });
   document.getElementById("btnMenu").addEventListener("click", function () { mostrarSeccion("menu"); });
+  document.querySelectorAll("#navSecciones .nav-tab[data-seccion]").forEach(function (tab) {
+    tab.addEventListener("click", function () { mostrarSeccion(tab.dataset.seccion); });
+  });
 
   // ---------- Configuración de Firebase ----------
 
@@ -1233,6 +1280,12 @@
     else { el.className = "contador cero"; el.textContent = "✓ al día"; }
   }
 
+  function actualizarNavBadge(id, cantidad) {
+    var el = document.getElementById(id);
+    el.textContent = cantidad > 0 ? String(cantidad) : "";
+    el.classList.toggle("oculto", cantidad === 0);
+  }
+
   function render() {
     var uCert = alertasCert(), uInsc = alertasInsc(), uPagos = alertasPagos(), uFact = alertasFacturar();
     pintarBanner("alertasCert", uCert, "✔ Sin alertas: no hay certificados por vencer ni pedidos atrasados.");
@@ -1243,6 +1296,10 @@
     actualizarContador("contadorInsc", uInsc.length);
     actualizarContador("contadorPagos", uPagos.length);
     actualizarContador("contadorFacturar", uFact.length);
+    actualizarNavBadge("navBadgeCert", uCert.length);
+    actualizarNavBadge("navBadgeInsc", uInsc.length);
+    actualizarNavBadge("navBadgePagos", uPagos.length);
+    actualizarNavBadge("navBadgeFacturar", uFact.length);
     renderTablaCert();
     renderTablaInsc();
     renderTablaPagos();
