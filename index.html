@@ -160,6 +160,22 @@
   .contador.hay { background: var(--rojo); color: #fff; }
   .contador.cero { background: var(--verde-fondo); color: var(--verde); }
 
+  .tarjetas-resumen {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .tarjeta-resumen {
+    background: var(--blanco);
+    border: 1px solid var(--gris-borde);
+    border-radius: 12px;
+    padding: 14px 18px;
+    text-align: center;
+  }
+  .resumen-valor { display: block; font-size: 1.35rem; font-weight: 800; color: var(--azul); }
+  .resumen-etiqueta { display: block; font-size: 0.8rem; color: var(--gris-texto); margin-top: 2px; }
+
   form.form-grid {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr 1fr auto;
@@ -343,6 +359,8 @@
   <button type="button" class="nav-tab" id="navInsc" data-seccion="inscripciones">🏛️ Inscripciones <span class="nav-badge oculto" id="navBadgeInsc"></span></button>
   <button type="button" class="nav-tab" id="navPagos" data-seccion="pagos">💰 Pagos <span class="nav-badge oculto" id="navBadgePagos"></span></button>
   <button type="button" class="nav-tab" id="navFacturar" data-seccion="facturar">🧾 A facturar <span class="nav-badge oculto" id="navBadgeFacturar"></span></button>
+  <button type="button" class="nav-tab" id="navServ" data-seccion="serv">💡 Mensuales <span class="nav-badge oculto" id="navBadgeServ"></span></button>
+  <button type="button" class="nav-tab" id="navCargas" data-seccion="cargas">🏦 Aportes <span class="nav-badge oculto" id="navBadgeCargas"></span></button>
 </nav>
 
 <!-- Pantalla: falta configurar Firebase -->
@@ -390,6 +408,20 @@
 
   <!-- Menú de secciones -->
   <div id="pantallaMenu">
+    <div class="tarjetas-resumen">
+      <div class="tarjeta-resumen">
+        <span class="resumen-valor" id="resumenCobrar">$0</span>
+        <span class="resumen-etiqueta">Pendiente de cobro</span>
+      </div>
+      <div class="tarjeta-resumen">
+        <span class="resumen-valor" id="resumenSinFacturar">$0</span>
+        <span class="resumen-etiqueta">Pendiente de facturar</span>
+      </div>
+      <div class="tarjeta-resumen">
+        <span class="resumen-valor" id="resumenProximos">0</span>
+        <span class="resumen-etiqueta">Vencimientos en 7 días</span>
+      </div>
+    </div>
     <p class="intro">¿Qué querés controlar hoy?</p>
     <button type="button" class="menu-boton" id="menuCertificados">
       <span class="icono">📋</span>
@@ -422,6 +454,22 @@
         <span class="sub">Trabajos hechos pendientes de facturación. Al cargar la factura pasan solos a «Seguimiento de pagos».</span>
       </span>
       <span class="contador cero" id="contadorFacturar">✓</span>
+    </button>
+    <button type="button" class="menu-boton" id="menuServ">
+      <span class="icono">💡</span>
+      <span class="texto">
+        <span class="titulo">Pagos mensuales</span>
+        <span class="sub">Expensas, luz, teléfono y otros pagos que vencen todos los meses. Aviso 10 días antes del vencimiento.</span>
+      </span>
+      <span class="contador cero" id="contadorServ">✓</span>
+    </button>
+    <button type="button" class="menu-boton" id="menuCargas">
+      <span class="icono">🏦</span>
+      <span class="texto">
+        <span class="titulo">Aportes e impuestos</span>
+        <span class="sub">Aportes notariales, impuesto de sellos, caja notarial, ley 404, SICORE y otras obligaciones mensuales.</span>
+      </span>
+      <span class="contador cero" id="contadorCargas">✓</span>
     </button>
   </div>
 
@@ -704,6 +752,112 @@
     </section>
   </div>
 
+  <!-- Sección Pagos mensuales (servicios) -->
+  <div id="seccionServ" class="oculto">
+    <div id="alertasServ" class="alertas sin-alertas"></div>
+
+    <section class="panel">
+      <h2 id="tituloFormServ">Agregar pago mensual</h2>
+      <form id="formServ" class="form-grid">
+        <div class="campo">
+          <label for="nombreServ">Concepto</label>
+          <input type="text" id="nombreServ" required placeholder="Ej.: Expensas oficina">
+        </div>
+        <div class="campo">
+          <label for="diaServ">Día de vencimiento (1 a 31)</label>
+          <input type="number" id="diaServ" min="1" max="31" step="1" required placeholder="10">
+        </div>
+        <div class="campo">
+          <button type="submit" class="primario" id="btnGuardarServ">Agregar</button>
+          <button type="button" class="secundario" id="btnCancelarServ" style="display:none; margin-top:6px;">Cancelar</button>
+        </div>
+      </form>
+      <p class="nota">Se carga una sola vez y la web genera el vencimiento de cada mes. Cada mes, anotá en la fila la <strong>fecha de pago</strong> y el <strong>monto</strong>: el concepto queda «Pagado» hasta el mes siguiente. La fila se pone <strong style="color:var(--amarillo)">amarilla</strong> 10 días antes del vencimiento y <strong style="color:var(--rojo)">roja</strong> si venció sin pagar.</p>
+    </section>
+
+    <section class="panel">
+      <div class="barra-tabla">
+        <h2 style="margin:0;">Pagos mensuales</h2>
+        <div class="acciones-globales">
+          <button type="button" class="secundario" id="btnExportarServ">Exportar respaldo</button>
+          <button type="button" class="secundario" id="btnImportarServ">Importar respaldo</button>
+          <input type="file" id="inputImportarServ" accept=".json,application/json" style="display:none;">
+        </div>
+      </div>
+      <div class="contenedor-tabla">
+        <table>
+          <thead>
+            <tr>
+              <th>Concepto</th>
+              <th>Estado</th>
+              <th>Vence este mes</th>
+              <th>Días</th>
+              <th>Fecha de pago</th>
+              <th>Monto pagado</th>
+              <th>Mes anterior</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="cuerpoTablaServ"></tbody>
+        </table>
+      </div>
+      <p class="nota">Todo lo que se carga acá lo ven los cinco integrantes al instante.</p>
+    </section>
+  </div>
+
+  <!-- Sección Aportes e impuestos (cargas notariales) -->
+  <div id="seccionCargas" class="oculto">
+    <div id="alertasCargas" class="alertas sin-alertas"></div>
+
+    <section class="panel">
+      <h2 id="tituloFormCargas">Agregar aporte / impuesto</h2>
+      <form id="formCargas" class="form-grid">
+        <div class="campo">
+          <label for="nombreCargas">Concepto</label>
+          <input type="text" id="nombreCargas" required placeholder="Ej.: Caja notarial / SICORE 1ª quincena">
+        </div>
+        <div class="campo">
+          <label for="diaCargas">Día de vencimiento (1 a 31)</label>
+          <input type="number" id="diaCargas" min="1" max="31" step="1" required placeholder="10">
+        </div>
+        <div class="campo">
+          <button type="submit" class="primario" id="btnGuardarCargas">Agregar</button>
+          <button type="button" class="secundario" id="btnCancelarCargas" style="display:none; margin-top:6px;">Cancelar</button>
+        </div>
+      </form>
+      <p class="nota">Se carga una sola vez y la web genera el vencimiento de cada mes. Si un concepto tiene dos vencimientos (ej. SICORE), cargalo dos veces: «SICORE 1ª quincena» y «SICORE 2ª quincena», cada uno con su día. La fila se pone <strong style="color:var(--amarillo)">amarilla</strong> 10 días antes y <strong style="color:var(--rojo)">roja</strong> si venció sin pagar.</p>
+    </section>
+
+    <section class="panel">
+      <div class="barra-tabla">
+        <h2 style="margin:0;">Aportes e impuestos</h2>
+        <div class="acciones-globales">
+          <button type="button" class="secundario" id="btnExportarCargas">Exportar respaldo</button>
+          <button type="button" class="secundario" id="btnImportarCargas">Importar respaldo</button>
+          <input type="file" id="inputImportarCargas" accept=".json,application/json" style="display:none;">
+        </div>
+      </div>
+      <div class="contenedor-tabla">
+        <table>
+          <thead>
+            <tr>
+              <th>Concepto</th>
+              <th>Estado</th>
+              <th>Vence este mes</th>
+              <th>Días</th>
+              <th>Fecha de pago</th>
+              <th>Monto pagado</th>
+              <th>Mes anterior</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="cuerpoTablaCargas"></tbody>
+        </table>
+      </div>
+      <p class="nota">Todo lo que se carga acá lo ven los cinco integrantes al instante.</p>
+    </section>
+  </div>
+
 </main>
 
 <script>
@@ -729,6 +883,9 @@
   var COLECCION_INSC = "inscripciones";   // escrituras a inscribir
   var COLECCION_PAGOS = "trabajos";       // seguimiento de pagos
   var COLECCION_FACTURAR = "porFacturar"; // trabajos hechos pendientes de facturación
+  var COLECCION_SERV = "serviciosMensuales";  // pagos mensuales (expensas, luz, teléfono…)
+  var COLECCION_CARGAS = "cargasNotariales";  // aportes e impuestos de la escribanía
+  var DIAS_AVISO_MENSUAL = 10; // mensuales: alerta cuando faltan 10 días o menos
   var DIAS_AVISO_CERT = 5;  // certificados: alerta cuando faltan 5 días o menos
   var DIAS_AVISO_INSC = 15; // inscripciones: alerta cuando faltan 15 días o menos
   var PLAZOS = { capital: 15, provincia: 30 }; // certificados, días corridos
@@ -747,6 +904,15 @@
   var facturarListos = false;
   var filtroPagos = "";
   var filtroFacturar = "";
+
+  // Configuración de las dos secciones de pagos recurrentes (misma lógica, distinta colección)
+  var MENSUALES = [
+    { col: COLECCION_SERV, sufijo: "Serv", seccion: "serv", nombreSeccion: "Pagos mensuales" },
+    { col: COLECCION_CARGAS, sufijo: "Cargas", seccion: "cargas", nombreSeccion: "Aportes e impuestos" }
+  ];
+  var mensuales = {};      // col -> lista de conceptos
+  var mensualesListos = {}; // col -> bool
+  MENSUALES.forEach(function (cfg) { mensuales[cfg.col] = []; mensualesListos[cfg.col] = false; });
   var fb = null; // { db, auth, fs, au } — SDK y conexiones una vez inicializado
 
   // ---------- Fechas (strings YYYY-MM-DD; aritmética a mediodía local) ----------
@@ -968,6 +1134,82 @@
     return urgentes;
   }
 
+  // ---------- Lógica de negocio: PAGOS RECURRENTES (mensuales) ----------
+
+  function mesDeISO(iso) { return iso.slice(0, 7); }               // "AAAA-MM-DD" -> "AAAA-MM"
+  function mesActualISO() { return mesDeISO(hoyISO()); }
+  function mesAnteriorISO() {
+    var p = mesActualISO().split("-");
+    var f = new Date(Number(p[0]), Number(p[1]) - 1 - 1, 1, 12);
+    return f.getFullYear() + "-" + String(f.getMonth() + 1).padStart(2, "0");
+  }
+  // Vencimiento del mes: día indicado, o el último día si el mes es más corto
+  function vencimientoDelMes(dia, mesIso) {
+    var p = mesIso.split("-");
+    var ultimo = new Date(Number(p[0]), Number(p[1]), 0, 12).getDate();
+    return mesIso + "-" + String(Math.min(dia, ultimo)).padStart(2, "0");
+  }
+  function nombreMes(mesIso) {
+    var p = mesIso.split("-");
+    var meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+    return meses[Number(p[1]) - 1] + " " + p[0];
+  }
+
+  function calcularMensual(e) {
+    var hoy = hoyISO();
+    var mes = mesActualISO();
+    var pagoMes = (e.pagos || {})[mes];
+    var info = {
+      vencimiento: vencimientoDelMes(e.diaVencimiento, mes),
+      diasRestantes: null,
+      pagoMes: pagoMes || null,
+      estado: null,
+      textoEstado: null
+    };
+    info.diasRestantes = diferenciaDias(hoy, info.vencimiento);
+    if (pagoMes && pagoMes.fecha) {
+      info.estado = "pagado"; info.textoEstado = "Pagado";
+    } else if (info.diasRestantes < 0) {
+      info.estado = "vencido"; info.textoEstado = "Vencido";
+    } else if (info.diasRestantes <= DIAS_AVISO_MENSUAL) {
+      info.estado = "por-vencer"; info.textoEstado = info.diasRestantes === 0 ? "¡Vence hoy!" : "Por vencer";
+    } else {
+      info.estado = "pendiente"; info.textoEstado = "Pendiente";
+    }
+    return info;
+  }
+
+  var ORDEN_MENSUAL = { "vencido": 0, "por-vencer": 1, "pendiente": 2, "pagado": 3 };
+
+  function mensualesOrdenados(cfg) {
+    return mensuales[cfg.col].slice().sort(function (a, b) {
+      var ia = calcularMensual(a), ib = calcularMensual(b);
+      if (ORDEN_MENSUAL[ia.estado] !== ORDEN_MENSUAL[ib.estado]) return ORDEN_MENSUAL[ia.estado] - ORDEN_MENSUAL[ib.estado];
+      return a.diaVencimiento - b.diaVencimiento;
+    });
+  }
+
+  function alertasMensual(cfg) {
+    var urgentes = [];
+    var mesAnt = mesAnteriorISO();
+    var finMesAnt = vencimientoDelMes(31, mesAnt);
+    mensuales[cfg.col].forEach(function (e) {
+      var info = calcularMensual(e);
+      if (info.estado === "vencido") {
+        urgentes.push("«" + e.nombre + "»: venció el " + formatear(info.vencimiento) + " y no está registrado el pago.");
+      } else if (info.estado === "por-vencer") {
+        var cuando = info.diasRestantes === 0 ? "HOY" : (info.diasRestantes === 1 ? "mañana" : "en " + info.diasRestantes + " días");
+        urgentes.push("«" + e.nombre + "»: vence " + cuando + " (" + formatear(info.vencimiento) + ").");
+      }
+      // El mes pasado quedó sin registrar (si el concepto ya existía ese mes)
+      var pagoAnt = (e.pagos || {})[mesAnt];
+      if ((!pagoAnt || !pagoAnt.fecha) && e.fechaAlta && e.fechaAlta <= finMesAnt) {
+        urgentes.push("«" + e.nombre + "»: quedó sin registrar el pago de " + nombreMes(mesAnt) + ".");
+      }
+    });
+    return urgentes;
+  }
+
   // ---------- Pantallas y navegación ----------
 
   function mostrarPantalla(id) {
@@ -985,6 +1227,8 @@
     document.getElementById("seccionInscripciones").classList.toggle("oculto", nombre !== "inscripciones");
     document.getElementById("seccionPagos").classList.toggle("oculto", nombre !== "pagos");
     document.getElementById("seccionFacturar").classList.toggle("oculto", nombre !== "facturar");
+    document.getElementById("seccionServ").classList.toggle("oculto", nombre !== "serv");
+    document.getElementById("seccionCargas").classList.toggle("oculto", nombre !== "cargas");
     document.getElementById("navSecciones").classList.toggle("oculto", nombre === "menu");
     document.querySelectorAll("#navSecciones .nav-tab").forEach(function (tab) {
       tab.classList.toggle("activa", tab.dataset.seccion === nombre);
@@ -1003,6 +1247,12 @@
     } else if (nombre === "facturar") {
       titulo.textContent = "🧾 Trabajos a facturar";
       sub.textContent = "Trabajos hechos pendientes de facturación — amarillo a los 15 días, rojo a los 30";
+    } else if (nombre === "serv") {
+      titulo.textContent = "💡 Pagos mensuales";
+      sub.textContent = "Expensas, luz, teléfono y otros vencimientos de todos los meses — aviso 10 días antes";
+    } else if (nombre === "cargas") {
+      titulo.textContent = "🏦 Aportes e impuestos";
+      sub.textContent = "Aportes notariales, sellos, caja notarial, ley 404, SICORE — aviso 10 días antes";
     } else {
       titulo.textContent = "🗂️ Escribanía";
       sub.textContent = "Seguimiento notarial";
@@ -1020,6 +1270,8 @@
   document.getElementById("menuInscripciones").addEventListener("click", function () { mostrarSeccion("inscripciones"); });
   document.getElementById("menuPagos").addEventListener("click", function () { mostrarSeccion("pagos"); });
   document.getElementById("menuFacturar").addEventListener("click", function () { mostrarSeccion("facturar"); });
+  document.getElementById("menuServ").addEventListener("click", function () { mostrarSeccion("serv"); });
+  document.getElementById("menuCargas").addEventListener("click", function () { mostrarSeccion("cargas"); });
   document.getElementById("btnMenu").addEventListener("click", function () { mostrarSeccion("menu"); });
   document.querySelectorAll("#navSecciones .nav-tab[data-seccion]").forEach(function (tab) {
     tab.addEventListener("click", function () { mostrarSeccion(tab.dataset.seccion); });
@@ -1209,6 +1461,25 @@
     }, function (err) {
       alert("No se pudieron leer los trabajos a facturar: " + err.message);
     });
+    MENSUALES.forEach(function (cfg) {
+      fb.fs.onSnapshot(fb.fs.collection(fb.db, cfg.col), function (snap) {
+        mensuales[cfg.col] = snap.docs.map(function (d) {
+          var datos = d.data();
+          var dia = Math.min(31, Math.max(1, aNumero(datos.diaVencimiento) || 1));
+          return {
+            id: d.id,
+            nombre: datos.nombre || "",
+            diaVencimiento: dia,
+            pagos: (datos.pagos && typeof datos.pagos === "object") ? datos.pagos : {},
+            fechaAlta: datos.fechaAlta || null
+          };
+        });
+        mensualesListos[cfg.col] = true;
+        render();
+      }, function (err) {
+        alert("No se pudieron leer los " + cfg.nombreSeccion.toLowerCase() + ": " + err.message);
+      });
+    });
   }
 
   function agregar(coleccion, datos) {
@@ -1300,10 +1571,42 @@
     actualizarNavBadge("navBadgeInsc", uInsc.length);
     actualizarNavBadge("navBadgePagos", uPagos.length);
     actualizarNavBadge("navBadgeFacturar", uFact.length);
+    MENSUALES.forEach(function (cfg) {
+      var u = alertasMensual(cfg);
+      pintarBanner("alertas" + cfg.sufijo, u, "✔ Sin alertas: no hay vencimientos próximos ni pagos sin registrar.");
+      actualizarContador("contador" + cfg.sufijo, u.length);
+      actualizarNavBadge("navBadge" + cfg.sufijo, u.length);
+      renderTablaMensual(cfg);
+    });
     renderTablaCert();
     renderTablaInsc();
     renderTablaPagos();
     renderTablaFacturar();
+    renderResumen();
+  }
+
+  // Tarjetas de resumen del menú
+  function renderResumen() {
+    var porCobrar = trabajos.reduce(function (acc, e) { return acc + Math.max(0, aNumero(e.monto) - aNumero(e.montoCobrado)); }, 0);
+    var sinFacturar = porFacturar.reduce(function (acc, e) { return acc + (e.fechaFactura ? 0 : aNumero(e.presupuesto)); }, 0);
+    var proximos = 0;
+    certificados.forEach(function (e) {
+      var i = calcularCert(e);
+      if (i.diasRestantes !== null && i.diasRestantes >= 0 && i.diasRestantes <= 7) proximos++;
+    });
+    inscripciones.forEach(function (e) {
+      var i = calcularInsc(e);
+      if (i.estado !== "presentada" && i.diasRestantes >= 0 && i.diasRestantes <= 7) proximos++;
+    });
+    MENSUALES.forEach(function (cfg) {
+      mensuales[cfg.col].forEach(function (e) {
+        var i = calcularMensual(e);
+        if (i.estado !== "pagado" && i.diasRestantes >= 0 && i.diasRestantes <= 7) proximos++;
+      });
+    });
+    document.getElementById("resumenCobrar").textContent = formatMonto(porCobrar);
+    document.getElementById("resumenSinFacturar").textContent = formatMonto(sinFacturar);
+    document.getElementById("resumenProximos").textContent = String(proximos);
   }
 
   function renderTablaCert() {
@@ -1673,6 +1976,104 @@
     });
   }
 
+  // Guarda el pago del mes actual de un concepto mensual (fecha y/o monto)
+  function guardarPagoMes(cfg, e, cambios) {
+    var mes = mesActualISO();
+    var pagos = {};
+    Object.keys(e.pagos || {}).forEach(function (k) { pagos[k] = e.pagos[k]; });
+    var entrada = { fecha: null, monto: 0 };
+    if (pagos[mes]) { entrada.fecha = pagos[mes].fecha || null; entrada.monto = aNumero(pagos[mes].monto); }
+    if (cambios.fecha !== undefined) entrada.fecha = cambios.fecha || null;
+    if (cambios.monto !== undefined) entrada.monto = aNumero(cambios.monto);
+    if (!entrada.fecha && !entrada.monto) delete pagos[mes];
+    else pagos[mes] = entrada;
+    actualizar(cfg.col, e.id, { pagos: pagos });
+  }
+
+  function renderTablaMensual(cfg) {
+    var cuerpo = document.getElementById("cuerpoTabla" + cfg.sufijo);
+    cuerpo.innerHTML = "";
+    var lista = mensuales[cfg.col];
+    if (lista.length === 0) {
+      var tr0 = document.createElement("tr");
+      var td0 = crearElemento("td", "vacio", mensualesListos[cfg.col]
+        ? "Todavía no hay conceptos cargados. Agregá el primero con el formulario de arriba."
+        : "Cargando datos compartidos…");
+      td0.colSpan = 8; tr0.appendChild(td0); cuerpo.appendChild(tr0);
+      return;
+    }
+    var mesAnt = mesAnteriorISO();
+    mensualesOrdenados(cfg).forEach(function (e) {
+      var info = calcularMensual(e);
+      var tr = document.createElement("tr");
+      if (info.estado === "por-vencer") tr.className = "fila-hay-que-pedir";
+      if (info.estado === "vencido") tr.className = "fila-vencido";
+
+      var tdNombre = crearElemento("td", null);
+      tdNombre.appendChild(document.createTextNode(e.nombre + " "));
+      var btnEd = crearElemento("button", "enlace boton-editar-nombre", "Editar");
+      btnEd.type = "button";
+      btnEd.addEventListener("click", function () { comenzarEdicionMensual(cfg, e.id); });
+      tdNombre.appendChild(btnEd);
+      tr.appendChild(tdNombre);
+
+      var tdEstado = document.createElement("td");
+      var claseBadge = info.estado === "pagado" ? "presentada"
+        : info.estado === "vencido" ? "vencido"
+        : info.estado === "por-vencer" ? "hay-que-pedir" : "vigente";
+      tdEstado.appendChild(crearElemento("span", "badge " + claseBadge, info.textoEstado));
+      tr.appendChild(tdEstado);
+
+      tr.appendChild(crearElemento("td", "numero", formatear(info.vencimiento)));
+      tr.appendChild(crearElemento("td", "numero", info.estado === "pagado" ? "—" : textoDias(info.diasRestantes)));
+
+      // Fecha de pago del mes actual: editable en la fila
+      var tdFecha = crearElemento("td", "numero");
+      var inpFecha = document.createElement("input");
+      inpFecha.type = "date";
+      inpFecha.value = (info.pagoMes && info.pagoMes.fecha) || "";
+      inpFecha.setAttribute("aria-label", "Fecha de pago de " + e.nombre);
+      inpFecha.addEventListener("change", function () {
+        guardarPagoMes(cfg, e, { fecha: inpFecha.value || null });
+      });
+      tdFecha.appendChild(inpFecha);
+      tr.appendChild(tdFecha);
+
+      // Monto pagado del mes actual: editable en la fila
+      var tdMonto = crearElemento("td", "numero");
+      var inpMonto = document.createElement("input");
+      inpMonto.type = "number"; inpMonto.min = "0"; inpMonto.step = "0.01";
+      inpMonto.className = "monto";
+      inpMonto.value = (info.pagoMes && info.pagoMes.monto) ? String(info.pagoMes.monto) : "";
+      inpMonto.placeholder = "0";
+      inpMonto.setAttribute("aria-label", "Monto pagado de " + e.nombre);
+      inpMonto.addEventListener("change", function () {
+        guardarPagoMes(cfg, e, { monto: aNumero(inpMonto.value) });
+      });
+      tdMonto.appendChild(inpMonto);
+      tr.appendChild(tdMonto);
+
+      // Pago del mes anterior (solo lectura)
+      var pagoAnt = (e.pagos || {})[mesAnt];
+      tr.appendChild(crearElemento("td", "numero", (pagoAnt && pagoAnt.fecha)
+        ? formatear(pagoAnt.fecha) + " · " + formatMonto(pagoAnt.monto)
+        : "—"));
+
+      var tdAcc = crearElemento("td", "acciones-fila");
+      var btnDel = crearElemento("button", "peligro", "Eliminar");
+      btnDel.type = "button";
+      btnDel.addEventListener("click", function () {
+        if (confirm("¿Eliminar el concepto «" + e.nombre + "» y su historial de pagos, para todos los usuarios?")) {
+          if (idEnEdicionMensual[cfg.col] === e.id) cancelarEdicionMensual(cfg);
+          eliminar(cfg.col, e.id);
+        }
+      });
+      tdAcc.appendChild(btnDel);
+      tr.appendChild(tdAcc);
+      cuerpo.appendChild(tr);
+    });
+  }
+
   function textoDias(dias) {
     if (dias === null || dias === undefined) return "—";
     if (dias < 0) return "Vencido hace " + Math.abs(dias) + " día" + (Math.abs(dias) === 1 ? "" : "s");
@@ -1886,6 +2287,68 @@
       agregar(COLECCION_FACTURAR, datos);
     }
     cancelarEdicionFacturar();
+  });
+
+  // ---------- Formularios PAGOS RECURRENTES (alta y edición) ----------
+
+  var idEnEdicionMensual = {};
+
+  function comenzarEdicionMensual(cfg, id) {
+    var e = mensuales[cfg.col].find(function (x) { return x.id === id; });
+    if (!e) return;
+    idEnEdicionMensual[cfg.col] = id;
+    document.getElementById("nombre" + cfg.sufijo).value = e.nombre;
+    document.getElementById("dia" + cfg.sufijo).value = String(e.diaVencimiento);
+    document.getElementById("tituloForm" + cfg.sufijo).textContent = "Editar concepto";
+    document.getElementById("btnGuardar" + cfg.sufijo).textContent = "Guardar cambios";
+    document.getElementById("btnCancelar" + cfg.sufijo).style.display = "inline-block";
+    document.getElementById("nombre" + cfg.sufijo).focus();
+  }
+  function cancelarEdicionMensual(cfg) {
+    idEnEdicionMensual[cfg.col] = null;
+    document.getElementById("form" + cfg.sufijo).reset();
+    document.getElementById("tituloForm" + cfg.sufijo).textContent = cfg.col === COLECCION_SERV ? "Agregar pago mensual" : "Agregar aporte / impuesto";
+    document.getElementById("btnGuardar" + cfg.sufijo).textContent = "Agregar";
+    document.getElementById("btnCancelar" + cfg.sufijo).style.display = "none";
+  }
+
+  MENSUALES.forEach(function (cfg) {
+    idEnEdicionMensual[cfg.col] = null;
+    document.getElementById("btnCancelar" + cfg.sufijo).addEventListener("click", function () { cancelarEdicionMensual(cfg); });
+    document.getElementById("form" + cfg.sufijo).addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      var nombre = document.getElementById("nombre" + cfg.sufijo).value.trim();
+      var dia = Math.round(aNumero(document.getElementById("dia" + cfg.sufijo).value));
+      if (!nombre || dia < 1 || dia > 31) return;
+      if (idEnEdicionMensual[cfg.col] !== null) {
+        actualizar(cfg.col, idEnEdicionMensual[cfg.col], { nombre: nombre, diaVencimiento: dia });
+      } else {
+        agregar(cfg.col, { nombre: nombre, diaVencimiento: dia, pagos: {}, fechaAlta: hoyISO() });
+      }
+      cancelarEdicionMensual(cfg);
+    });
+
+    document.getElementById("btnExportar" + cfg.sufijo).addEventListener("click", function () {
+      var datos = mensuales[cfg.col].map(function (e) {
+        return { nombre: e.nombre, diaVencimiento: e.diaVencimiento, pagos: e.pagos || {}, fechaAlta: e.fechaAlta || null };
+      });
+      descargar(cfg.seccion === "serv" ? "pagos-mensuales-" + hoyISO() + ".json" : "aportes-impuestos-" + hoyISO() + ".json", JSON.stringify(datos, null, 2));
+    });
+    document.getElementById("btnImportar" + cfg.sufijo).addEventListener("click", function () {
+      document.getElementById("inputImportar" + cfg.sufijo).click();
+    });
+    document.getElementById("inputImportar" + cfg.sufijo).addEventListener("change", function (ev) {
+      leerArchivo(ev, function (datos) {
+        var validas = datos.filter(function (x) {
+          return x && typeof x.nombre === "string" && aNumero(x.diaVencimiento) >= 1 && aNumero(x.diaVencimiento) <= 31;
+        });
+        if (!confirm("Se van a importar " + validas.length + " conceptos y se reemplazará el listado compartido que ven los cinco. ¿Continuar?")) return;
+        reemplazarTodo(cfg.col, mensuales[cfg.col], validas.map(function (x) {
+          return { nombre: x.nombre, diaVencimiento: Math.round(aNumero(x.diaVencimiento)), pagos: (x.pagos && typeof x.pagos === "object") ? x.pagos : {}, fechaAlta: x.fechaAlta || null };
+        }));
+        cancelarEdicionMensual(cfg);
+      });
+    });
   });
 
   // ---------- Exportar / Importar ----------
