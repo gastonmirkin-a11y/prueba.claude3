@@ -673,8 +673,8 @@
               <th>Días restantes</th>
               <th>Estado</th>
               <th>Vencimiento</th>
-              <th>Jurisdicción</th>
               <th>Fecha programada de escritura</th>
+              <th>Jurisdicción</th>
               <th>Pedir antes del</th>
               <th>Fecha de pedido</th>
               <th>Fecha en que se firmó</th>
@@ -2201,14 +2201,13 @@
 
       tr.appendChild(crearElemento("td", "numero", formatear(info.vencimiento)));
 
-      tr.appendChild(crearElemento("td", null, NOMBRES_JURISDICCION[e.jurisdiccion] + " (" + info.plazo + " días)"));
-
-      // Fecha de la escritura: obligatoria, no se permite vaciar
       // Fecha programada de escritura: obligatoria, no se permite vaciar
       tr.appendChild(celdaFecha(e.fechaEscritura, "Fecha programada de escritura de " + e.nombre, function (v) {
         if (!v) return false;
         actualizar(COLECCION_CERT, e.id, { fechaEscritura: v });
       }));
+
+      tr.appendChild(crearElemento("td", null, NOMBRES_JURISDICCION[e.jurisdiccion] + " (" + info.plazo + " días)"));
 
       tr.appendChild(crearElemento("td", "numero", formatear(info.fechaSugerida)));
 
