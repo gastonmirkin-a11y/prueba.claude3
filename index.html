@@ -1042,6 +1042,12 @@
     return p[2] + "/" + p[1] + "/" + p[0];
   }
   function esFechaValida(iso) { return /^\d{4}-\d{2}-\d{2}$/.test(iso || ""); }
+  // Un año a medio escribir (ej. 0002 mientras se tipea 2026) no se guarda.
+  function anioPlausible(iso) {
+    if (!iso) return true; // vacío es válido: significa "sin fecha"
+    var anio = Number(String(iso).slice(0, 4));
+    return anio >= 1900 && anio <= 2999;
+  }
   function aNumero(v) { var n = Number(v); return isNaN(n) || n < 0 ? 0 : n; }
   function formatMonto(n) { return "$" + aNumero(n).toLocaleString("es-AR"); }
   function normaliza(s) { return (s == null ? "" : String(s)).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(); }
@@ -1555,7 +1561,8 @@
           fechaTrabajo: datos.fechaTrabajo || hoyISO(),
           fechaFactura: datos.fechaFactura || null,
           numeroFactura: datos.numeroFactura || "",
-          pagoCreado: !!datos.pagoCreado
+          pagoCreado: !!datos.pagoCreado,
+          pagoId: datos.pagoId || null
         };
       });
       facturarListos = true;
@@ -1678,7 +1685,36 @@
     el.classList.toggle("oculto", cantidad === 0);
   }
 
+  // Mientras se está editando un campo dentro de una tabla no se redibuja:
+  // si no, al escribir una fecha el navegador la da por completa con el año a medias
+  // (ej. 0002), se guarda, se rehace la fila y el campo desaparece con el foco puesto.
+  var renderDiferido = false;
+
+  function editandoEnTabla() {
+    var act = document.activeElement;
+    return act && (act.tagName === "INPUT" || act.tagName === "SELECT") && act.closest("tbody");
+  }
+
+  // Espera a que se termine de editar: si el foco pasa a otro campo de la misma tabla
+  // (ej. de la fecha al N° de entrada), sigue esperando en vez de rehacer la fila.
+  function esperarFinDeEdicion() {
+    document.activeElement.addEventListener("blur", function () {
+      setTimeout(function () {
+        if (editandoEnTabla()) { esperarFinDeEdicion(); return; }
+        renderDiferido = false;
+        render();
+      }, 0);
+    }, { once: true });
+  }
+
   function render() {
+    if (editandoEnTabla()) {
+      if (!renderDiferido) {
+        renderDiferido = true;
+        esperarFinDeEdicion();
+      }
+      return;
+    }
     var uCert = alertasCert(), uInsc = alertasInsc(), uPagos = alertasPagos(), uFact = alertasFacturar();
     pintarBanner("alertasCert", uCert, "✔ Sin alertas: no hay certificados por vencer ni pedidos atrasados.");
     pintarBanner("alertasInsc", uInsc, "✔ Sin alertas: no hay escrituras con el plazo de inscripción por vencer.");
@@ -1875,6 +1911,7 @@
       inpEsc.value = e.fechaEscritura;
       inpEsc.setAttribute("aria-label", "Fecha de la escritura de " + e.nombre);
       inpEsc.addEventListener("change", function () {
+        if (!anioPlausible(inpEsc.value)) return; // año a medio escribir: se espera
         if (inpEsc.value) actualizar(COLECCION_CERT, e.id, { fechaEscritura: inpEsc.value });
         else inpEsc.value = e.fechaEscritura; // no se puede dejar vacía
       });
@@ -1889,6 +1926,7 @@
       inpPedido.value = e.fechaPedido || "";
       inpPedido.setAttribute("aria-label", "Fecha de pedido de " + e.nombre);
       inpPedido.addEventListener("change", function () {
+        if (!anioPlausible(inpPedido.value)) return;
         actualizar(COLECCION_CERT, e.id, { fechaPedido: inpPedido.value || null });
       });
       tdPedido.appendChild(inpPedido);
@@ -1940,6 +1978,7 @@
       inpPres.value = e.fechaPresentacion || "";
       inpPres.setAttribute("aria-label", "Fecha de presentación de " + e.nombre);
       inpPres.addEventListener("change", function () {
+        if (!anioPlausible(inpPres.value)) return;
         actualizar(COLECCION_INSC, e.id, { fechaPresentacion: inpPres.value || null });
       });
       tdPres.appendChild(inpPres);
@@ -2030,6 +2069,7 @@
       inpFCobro.value = e.fechaCobro || "";
       inpFCobro.setAttribute("aria-label", "Fecha de cobro de " + e.descripcion);
       inpFCobro.addEventListener("change", function () {
+        if (!anioPlausible(inpFCobro.value)) return;
         actualizar(COLECCION_PAGOS, e.id, { fechaCobro: inpFCobro.value || null });
       });
       tdFCobro.appendChild(inpFCobro);
@@ -2051,7 +2091,10 @@
 
   // Guarda cambios en un trabajo a facturar y, si queda facturado por primera vez,
   // lo crea automáticamente en «Seguimiento de pagos» (idempotente por pagoCreado).
-  function guardarFacturar(id, e, cambios) {
+  function guardarFacturar(id, eFila, cambios) {
+    // El dato de la fila puede estar viejo (mientras se edita no se redibuja),
+    // así que se toma siempre el actual: si no, se duplicaría el pago.
+    var e = porFacturar.find(function (x) { return x.id === id; }) || eFila;
     var resultado = Object.assign({}, e, cambios);
     if (resultado.fechaFactura && !e.pagoCreado && !cambios.pagoCreado) {
       agregar(COLECCION_PAGOS, {
@@ -2062,8 +2105,17 @@
         monto: aNumero(resultado.presupuesto),
         montoCobrado: 0,
         fechaCobro: null
+      }).then(function (ref) {
+        // Se guarda el vínculo para poder sincronizar después los datos de la factura
+        if (ref && ref.id) actualizar(COLECCION_FACTURAR, id, { pagoId: ref.id });
       });
       cambios.pagoCreado = true;
+    } else if (e.pagoId) {
+      // El pago ya existe: si se cargan o corrigen los datos de la factura, se copian allá
+      var sinc = {};
+      if ("numeroFactura" in cambios) sinc.datosFactura = cambios.numeroFactura || "";
+      if (cambios.fechaFactura) sinc.fechaFactura = cambios.fechaFactura;
+      if (Object.keys(sinc).length > 0) actualizar(COLECCION_PAGOS, e.pagoId, sinc);
     }
     actualizar(COLECCION_FACTURAR, id, cambios);
   }
@@ -2128,6 +2180,7 @@
       inpFF.value = e.fechaFactura || "";
       inpFF.setAttribute("aria-label", "Fecha de factura de " + e.descripcion);
       inpFF.addEventListener("change", function () {
+        if (!anioPlausible(inpFF.value)) return;
         guardarFacturar(e.id, e, { fechaFactura: inpFF.value || null });
       });
       tdFF.appendChild(inpFF);
@@ -2142,7 +2195,8 @@
       inpNF.placeholder = "—";
       inpNF.setAttribute("aria-label", "N° de factura de " + e.descripcion);
       inpNF.addEventListener("change", function () {
-        actualizar(COLECCION_FACTURAR, e.id, { numeroFactura: inpNF.value.trim() });
+        // Por guardarFacturar para que el número también llegue a «Seguimiento de pagos»
+        guardarFacturar(e.id, e, { numeroFactura: inpNF.value.trim() });
       });
       tdNF.appendChild(inpNF);
       tr.appendChild(tdNF);
@@ -2152,7 +2206,9 @@
   }
 
   // Guarda el pago del mes actual de un concepto mensual (fecha y/o monto)
-  function guardarPagoMes(cfg, e, cambios) {
+  function guardarPagoMes(cfg, eFila, cambios) {
+    // Igual que en facturar: se relee el concepto para no pisar el mapa de pagos con datos viejos
+    var e = mensuales[cfg.col].find(function (x) { return x.id === eFila.id; }) || eFila;
     var mes = mesActualISO();
     var pagos = {};
     Object.keys(e.pagos || {}).forEach(function (k) { pagos[k] = e.pagos[k]; });
@@ -2211,6 +2267,7 @@
       inpFecha.value = (info.pagoMes && info.pagoMes.fecha) || "";
       inpFecha.setAttribute("aria-label", "Fecha de pago de " + e.nombre);
       inpFecha.addEventListener("change", function () {
+        if (!anioPlausible(inpFecha.value)) return;
         guardarPagoMes(cfg, e, { fecha: inpFecha.value || null });
       });
       tdFecha.appendChild(inpFecha);
@@ -2443,14 +2500,18 @@
     } else {
       // Alta: si ya viene con fecha de factura, se crea también en pagos
       if (datos.fechaFactura) {
+        datos.pagoCreado = true;
         agregar(COLECCION_PAGOS, {
           descripcion: datos.descripcion, cliente: datos.cliente || "",
           datosFactura: datos.numeroFactura || "", fechaFactura: datos.fechaFactura,
           monto: aNumero(datos.presupuesto), montoCobrado: 0, fechaCobro: null
+        }).then(function (refPago) {
+          if (!refPago || !refPago.id) return;
+          agregar(COLECCION_FACTURAR, Object.assign({}, datos, { pagoId: refPago.id }));
         });
-        datos.pagoCreado = true;
+      } else {
+        agregar(COLECCION_FACTURAR, datos);
       }
-      agregar(COLECCION_FACTURAR, datos);
     }
     cancelarEdicionFacturar();
   });
@@ -2605,7 +2666,7 @@
 
   document.getElementById("btnExportarFacturar").addEventListener("click", function () {
     var datos = porFacturar.map(function (e) {
-      return { descripcion: e.descripcion, cliente: e.cliente || "", presupuesto: aNumero(e.presupuesto), fechaTrabajo: e.fechaTrabajo, fechaFactura: e.fechaFactura || null, numeroFactura: e.numeroFactura || "", pagoCreado: !!e.pagoCreado };
+      return { descripcion: e.descripcion, cliente: e.cliente || "", presupuesto: aNumero(e.presupuesto), fechaTrabajo: e.fechaTrabajo, fechaFactura: e.fechaFactura || null, numeroFactura: e.numeroFactura || "", pagoCreado: !!e.pagoCreado, pagoId: e.pagoId || null };
     });
     descargar("por-facturar-" + hoyISO() + ".json", JSON.stringify(datos, null, 2));
   });
@@ -2619,7 +2680,7 @@
       });
       if (!confirm("Se van a importar " + validas.length + " trabajos a facturar y se reemplazará el listado compartido que ven los cinco. ¿Continuar?")) return;
       reemplazarTodo(COLECCION_FACTURAR, porFacturar, validas.map(function (x) {
-        return { descripcion: x.descripcion, cliente: x.cliente || "", presupuesto: aNumero(x.presupuesto), fechaTrabajo: x.fechaTrabajo, fechaFactura: x.fechaFactura || null, numeroFactura: x.numeroFactura || "", pagoCreado: !!x.pagoCreado };
+        return { descripcion: x.descripcion, cliente: x.cliente || "", presupuesto: aNumero(x.presupuesto), fechaTrabajo: x.fechaTrabajo, fechaFactura: x.fechaFactura || null, numeroFactura: x.numeroFactura || "", pagoCreado: !!x.pagoCreado, pagoId: x.pagoId || null };
       }));
       cancelarEdicionFacturar();
     });
