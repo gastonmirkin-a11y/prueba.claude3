@@ -592,11 +592,11 @@
               <th>Escritura</th>
               <th>Días restantes</th>
               <th>Estado</th>
+              <th>Vencimiento</th>
               <th>Jurisdicción</th>
               <th>Fecha escritura</th>
               <th>Pedir antes del</th>
               <th>Fecha de pedido</th>
-              <th>Vencimiento</th>
             </tr>
           </thead>
           <tbody id="cuerpoTablaCert"></tbody>
@@ -1767,6 +1767,8 @@
       if (info.noLlega) tdEstado.appendChild(crearElemento("span", "advertencia-escritura", "⚠ Vence antes de la escritura"));
       tr.appendChild(tdEstado);
 
+      tr.appendChild(crearElemento("td", "numero", formatear(info.vencimiento)));
+
       tr.appendChild(crearElemento("td", null, NOMBRES_JURISDICCION[e.jurisdiccion] + " (" + info.plazo + " días)"));
 
       // Fecha de la escritura: editable en la fila (es obligatoria, no se permite vaciar)
@@ -1794,8 +1796,6 @@
       });
       tdPedido.appendChild(inpPedido);
       tr.appendChild(tdPedido);
-
-      tr.appendChild(crearElemento("td", "numero", formatear(info.vencimiento)));
 
       cuerpo.appendChild(tr);
     });
