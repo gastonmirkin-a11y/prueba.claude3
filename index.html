@@ -417,7 +417,7 @@
   .badge.vigente { background: var(--verde-fondo); color: var(--verde); }
   .badge.por-vencer { background: var(--rojo); color: var(--blanco); }
   .badge.vencido { background: var(--rojo-oscuro); color: var(--blanco); }
-  .badge.presentada { background: #e7edf5; color: var(--azul); border: 1px solid #b9c9dd; }
+  .badge.presentada, .badge.firmada { background: #e7edf5; color: var(--azul); border: 1px solid #b9c9dd; }
   .advertencia-escritura {
     display: block;
     margin-top: 4px;
@@ -599,8 +599,12 @@
           </select>
         </div>
         <div class="campo">
-          <label for="fechaEscritura">Fecha de la escritura</label>
+          <label for="fechaEscritura">Fecha programada de escritura</label>
           <input type="date" id="fechaEscritura" required>
+        </div>
+        <div class="campo">
+          <label for="fechaFirma">Fecha en que se firmó (opcional)</label>
+          <input type="date" id="fechaFirma">
         </div>
         <div class="campo">
           <label for="fechaPedido">Fecha de pedido (opcional)</label>
@@ -611,7 +615,7 @@
           <button type="button" class="secundario" id="btnCancelarCert" style="display:none; margin-top:6px;">Cancelar</button>
         </div>
       </form>
-      <p class="nota">La fecha de pedido se puede dejar vacía y completarla más adelante, directamente en la tabla, cuando pidas los certificados. Todo lo que se carga acá lo ven los cinco integrantes al instante.</p>
+      <p class="nota">La fecha de pedido se puede dejar vacía y completarla más adelante, directamente en la tabla, cuando pidas los certificados. Cuando cargues la <strong>fecha en que se firmó</strong>, la escritura pasa sola a «Inscripción de escrituras» con esa fecha como fecha de otorgamiento. Todo lo que se carga acá lo ven los cinco integrantes al instante.</p>
     </section>
 
     <section class="panel">
@@ -632,9 +636,10 @@
               <th>Estado</th>
               <th>Vencimiento</th>
               <th>Jurisdicción</th>
-              <th>Fecha escritura</th>
+              <th>Fecha programada de escritura</th>
               <th>Pedir antes del</th>
               <th>Fecha de pedido</th>
+              <th>Fecha en que se firmó</th>
             </tr>
           </thead>
           <tbody id="cuerpoTablaCert"></tbody>
@@ -1067,6 +1072,16 @@
       noLlega: false,
       hayQuePedir: false // un certificado vencido ya no sirve: hay que pedir otro
     };
+    if (e.fechaFirma) {
+      // Escritura ya firmada: el certificado cumplió su función, no hay nada que pedir
+      if (e.fechaPedido) {
+        info.vencimiento = sumarDias(e.fechaPedido, plazo - 1);
+        info.diasRestantes = diferenciaDias(hoy, info.vencimiento);
+      }
+      info.estado = "firmada";
+      info.textoEstado = "Escritura firmada";
+      return info;
+    }
     if (e.fechaPedido) {
       info.vencimiento = sumarDias(e.fechaPedido, plazo - 1);
       info.diasRestantes = diferenciaDias(hoy, info.vencimiento);
@@ -1081,7 +1096,7 @@
     return info;
   }
 
-  var ORDEN_CERT = { "vencido": 0, "por-vencer": 1, "hay-que-pedir": 2, "vigente": 3, "pendiente": 4 };
+  var ORDEN_CERT = { "vencido": 0, "por-vencer": 1, "hay-que-pedir": 2, "vigente": 3, "pendiente": 4, "firmada": 5 };
 
   function certOrdenados() {
     return certificados.slice().sort(function (a, b) {
@@ -1505,6 +1520,9 @@
           nombre: datos.nombre || "",
           jurisdiccion: PLAZOS[datos.jurisdiccion] ? datos.jurisdiccion : "capital",
           fechaEscritura: datos.fechaEscritura || hoyISO(),
+          fechaFirma: datos.fechaFirma || null,
+          inscripcionCreada: !!datos.inscripcionCreada,
+          inscripcionId: datos.inscripcionId || null,
           fechaPedido: datos.fechaPedido || null
         };
       });
@@ -1624,7 +1642,8 @@
       Promise.all(validos.map(function (x) {
         return agregar(COLECCION_CERT, {
           nombre: x.nombre, jurisdiccion: x.jurisdiccion,
-          fechaEscritura: x.fechaEscritura, fechaPedido: x.fechaPedido || null
+          fechaEscritura: x.fechaEscritura, fechaPedido: x.fechaPedido || null,
+          fechaFirma: x.fechaFirma || null, inscripcionCreada: !!x.inscripcionCreada, inscripcionId: x.inscripcionId || null
         });
       })).then(function () { localStorage.removeItem(CLAVE_STORAGE_LOCAL); });
     }
@@ -1787,7 +1806,7 @@
     certificados.forEach(function (e) {
       var info = calcularCert(e);
       if (info.hayQuePedir) pedir.push({ cert: e, info: info });
-      else if (info.vencimiento) vigentes.push({ cert: e, info: info });
+      else if (info.vencimiento && !e.fechaFirma) vigentes.push({ cert: e, info: info });
     });
     // Primero las escrituras que todavía no pasaron (la más próxima arriba);
     // después las ya pasadas, de la más reciente a la más vieja.
@@ -1865,6 +1884,7 @@
     var proximos = 0;
     certificados.forEach(function (e) {
       var i = calcularCert(e);
+      if (e.fechaFirma) return; // ya firmada: no hay vencimiento que controlar
       if (i.diasRestantes !== null && i.diasRestantes >= 0 && i.diasRestantes <= 7) proximos++;
     });
     inscripciones.forEach(function (e) {
@@ -1889,7 +1909,7 @@
       var td0 = crearElemento("td", "vacio", certListos
         ? "Todavía no hay certificados cargados. Agregá el primero con el formulario de arriba."
         : "Cargando datos compartidos…");
-      td0.colSpan = 8; tr0.appendChild(td0); cuerpo.appendChild(tr0);
+      td0.colSpan = 9; tr0.appendChild(td0); cuerpo.appendChild(tr0);
       return;
     }
     certOrdenados().forEach(function (e) {
@@ -1922,7 +1942,8 @@
       tr.appendChild(crearElemento("td", null, NOMBRES_JURISDICCION[e.jurisdiccion] + " (" + info.plazo + " días)"));
 
       // Fecha de la escritura: obligatoria, no se permite vaciar
-      tr.appendChild(celdaFecha(e.fechaEscritura, "Fecha de la escritura de " + e.nombre, function (v) {
+      // Fecha programada de escritura: obligatoria, no se permite vaciar
+      tr.appendChild(celdaFecha(e.fechaEscritura, "Fecha programada de escritura de " + e.nombre, function (v) {
         if (!v) return false;
         actualizar(COLECCION_CERT, e.id, { fechaEscritura: v });
       }));
@@ -1931,6 +1952,11 @@
 
       tr.appendChild(celdaFecha(e.fechaPedido, "Fecha de pedido de " + e.nombre, function (v) {
         actualizar(COLECCION_CERT, e.id, { fechaPedido: v || null });
+      }));
+
+      // Fecha en que se firmó: al cargarla, la escritura pasa sola a Inscripciones
+      tr.appendChild(celdaFecha(e.fechaFirma, "Fecha en que se firmó la escritura de " + e.nombre, function (v) {
+        guardarCert(e.id, e, { fechaFirma: v || null });
       }));
 
       cuerpo.appendChild(tr);
@@ -2080,6 +2106,29 @@
 
       cuerpo.appendChild(tr);
     });
+  }
+
+  // Guarda cambios en un certificado y, al cargar la fecha de firma por primera vez,
+  // pasa la escritura a «Inscripción de escrituras» (idempotente por inscripcionCreada).
+  function guardarCert(id, eFila, cambios) {
+    // Se relee el certificado: mientras se edita no se redibuja y el dato de la fila queda viejo
+    var e = certificados.find(function (x) { return x.id === id; }) || eFila;
+    var resultado = Object.assign({}, e, cambios);
+    if (resultado.fechaFirma && !e.inscripcionCreada && !cambios.inscripcionCreada) {
+      agregar(COLECCION_INSC, {
+        nombre: resultado.nombre,
+        fechaOtorgamiento: resultado.fechaFirma,
+        fechaPresentacion: null,
+        numeroEntrada: ""
+      }).then(function (ref) {
+        if (ref && ref.id) actualizar(COLECCION_CERT, id, { inscripcionId: ref.id });
+      });
+      cambios.inscripcionCreada = true;
+    } else if (e.inscripcionId && cambios.fechaFirma) {
+      // Si se corrige la fecha de firma, se corrige también la de otorgamiento
+      actualizar(COLECCION_INSC, e.inscripcionId, { fechaOtorgamiento: cambios.fechaFirma });
+    }
+    actualizar(COLECCION_CERT, id, cambios);
   }
 
   // Guarda cambios en un trabajo a facturar y, si queda facturado por primera vez,
@@ -2332,6 +2381,7 @@
     document.getElementById("jurisdiccion").value = e.jurisdiccion;
     document.getElementById("fechaEscritura").value = e.fechaEscritura;
     document.getElementById("fechaPedido").value = e.fechaPedido || "";
+    document.getElementById("fechaFirma").value = e.fechaFirma || "";
     document.getElementById("tituloFormCert").textContent = "Editar certificado";
     document.getElementById("btnGuardarCert").textContent = "Guardar cambios";
     document.getElementById("btnCancelarCert").style.display = "inline-block";
@@ -2351,11 +2401,25 @@
       nombre: document.getElementById("nombreCert").value.trim(),
       jurisdiccion: document.getElementById("jurisdiccion").value,
       fechaEscritura: document.getElementById("fechaEscritura").value,
-      fechaPedido: document.getElementById("fechaPedido").value || null
+      fechaPedido: document.getElementById("fechaPedido").value || null,
+      fechaFirma: document.getElementById("fechaFirma").value || null
     };
     if (!datos.nombre || !datos.fechaEscritura) return;
-    if (idEnEdicionCert !== null) actualizar(COLECCION_CERT, idEnEdicionCert, datos);
-    else agregar(COLECCION_CERT, datos);
+    if (idEnEdicionCert !== null) {
+      var actual = certificados.find(function (x) { return x.id === idEnEdicionCert; }) || {};
+      guardarCert(idEnEdicionCert, actual, datos);
+    } else if (datos.fechaFirma) {
+      // Alta que ya viene firmada: se crea también en Inscripciones
+      datos.inscripcionCreada = true;
+      agregar(COLECCION_INSC, {
+        nombre: datos.nombre, fechaOtorgamiento: datos.fechaFirma,
+        fechaPresentacion: null, numeroEntrada: ""
+      }).then(function (ref) {
+        if (ref && ref.id) agregar(COLECCION_CERT, Object.assign({}, datos, { inscripcionId: ref.id }));
+      });
+    } else {
+      agregar(COLECCION_CERT, datos);
+    }
     cancelarEdicionCert();
   });
 
@@ -2578,7 +2642,7 @@
 
   document.getElementById("btnExportarCert").addEventListener("click", function () {
     var datos = certificados.map(function (e) {
-      return { nombre: e.nombre, jurisdiccion: e.jurisdiccion, fechaEscritura: e.fechaEscritura, fechaPedido: e.fechaPedido || null };
+      return { nombre: e.nombre, jurisdiccion: e.jurisdiccion, fechaEscritura: e.fechaEscritura, fechaPedido: e.fechaPedido || null, fechaFirma: e.fechaFirma || null, inscripcionCreada: !!e.inscripcionCreada, inscripcionId: e.inscripcionId || null };
     });
     descargar("certificados-" + hoyISO() + ".json", JSON.stringify(datos, null, 2));
   });
@@ -2592,7 +2656,7 @@
       });
       if (!confirm("Se van a importar " + validas.length + " certificados y se reemplazará el listado compartido que ven los cinco. ¿Continuar?")) return;
       reemplazarTodo(COLECCION_CERT, certificados, validas.map(function (x) {
-        return { nombre: x.nombre, jurisdiccion: x.jurisdiccion, fechaEscritura: x.fechaEscritura, fechaPedido: x.fechaPedido || null };
+        return { nombre: x.nombre, jurisdiccion: x.jurisdiccion, fechaEscritura: x.fechaEscritura, fechaPedido: x.fechaPedido || null, fechaFirma: x.fechaFirma || null, inscripcionCreada: !!x.inscripcionCreada, inscripcionId: x.inscripcionId || null };
       }));
       cancelarEdicionCert();
     });
