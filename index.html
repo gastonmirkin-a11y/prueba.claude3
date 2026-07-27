@@ -232,6 +232,33 @@
   .proxima-vence { font-size: 0.85rem; color: var(--gris-texto); white-space: nowrap; }
   .panel-vacio { font-size: 0.9rem; color: var(--gris-texto); }
 
+  /* Subpágina de una escritura: checklist prescriturario */
+  .barra-volver { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .rotulo-carpeta { font-size: 1.05rem; font-weight: 800; color: var(--azul); }
+  .rotulo-carpeta .carpeta-num { font-weight: 600; color: var(--gris-texto); margin-left: 8px; font-size: 0.9rem; }
+
+  .carpeta-detalle { display: grid; grid-template-columns: 260px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 900px) { .carpeta-detalle { grid-template-columns: 1fr; } }
+  .carpeta-lateral { position: sticky; top: 16px; }
+  .avance-total { font-size: 1.1rem; font-weight: 800; color: var(--azul); }
+  .barra-progreso { height: 8px; border-radius: 999px; background: var(--gris-fondo); overflow: hidden; margin: 8px 0 14px; }
+  .barra-progreso span { display: block; height: 100%; width: 0; background: var(--verde); border-radius: 999px; }
+  .avance-bloque { display: flex; justify-content: space-between; gap: 10px; font-size: 0.85rem; padding: 4px 0; border-top: 1px solid var(--gris-borde); }
+  .avance-bloque .cuenta { color: var(--gris-texto); white-space: nowrap; }
+  .avance-bloque.completo .cuenta { color: var(--verde); font-weight: 700; }
+
+  .bloque-checklist { margin-bottom: 16px; }
+  .subgrupo-titulo { font-size: 0.9rem; font-weight: 800; color: var(--azul-claro); text-transform: uppercase; letter-spacing: .04em; margin: 16px 0 6px; }
+  .pregunta { padding: 10px 0; border-top: 1px solid var(--gris-borde); }
+  .pregunta:first-of-type { border-top: none; }
+  .pregunta-texto { display: block; font-weight: 600; margin-bottom: 4px; }
+  .pregunta-ayuda { display: block; font-size: 0.8rem; color: var(--gris-texto); margin-bottom: 6px; }
+  .pregunta-campos { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .pregunta-campos select, .pregunta-campos input { padding: 6px 10px; border: 1px solid var(--gris-borde); border-radius: 8px; font: inherit; }
+  .pregunta-campos input[type=text] { flex: 1; min-width: 200px; }
+  .pregunta-campos .etiqueta-nota { font-size: 0.8rem; color: var(--gris-texto); }
+  .pregunta.respondida .pregunta-texto::before { content: "✓ "; color: var(--verde); }
+
   /* Bloque destacado: qué certificados hay que pedir */
   .aviso-pedir {
     background: var(--rojo-fondo);
@@ -461,6 +488,7 @@
   <button type="button" class="nav-tab" id="navFacturar" data-seccion="facturar">🧾 A facturar <span class="nav-badge oculto" id="navBadgeFacturar"></span></button>
   <button type="button" class="nav-tab" id="navServ" data-seccion="serv">💡 Servicios <span class="nav-badge oculto" id="navBadgeServ"></span></button>
   <button type="button" class="nav-tab" id="navCargas" data-seccion="cargas">🏦 DDJJ mensuales <span class="nav-badge oculto" id="navBadgeCargas"></span></button>
+  <button type="button" class="nav-tab" id="navCarpetas" data-seccion="carpetas">📁 Escrituras <span class="nav-badge oculto" id="navBadgeCarpetas"></span></button>
 </nav>
 
 <!-- Pantalla: falta configurar Firebase -->
@@ -577,6 +605,14 @@
         <span class="sub">Aportes notariales, impuesto de sellos, caja notarial, ley 404, SICORE y otras obligaciones mensuales.</span>
       </span>
       <span class="contador cero" id="contadorCargas">✓</span>
+    </button>
+    <button type="button" class="menu-boton" id="menuCarpetas">
+      <span class="icono">📁</span>
+      <span class="texto">
+        <span class="titulo">Escrituras</span>
+        <span class="sub">Una carpeta por escritura a firmar, con el checklist prescriturario para ir completando.</span>
+      </span>
+      <span class="contador cero" id="contadorCarpetas">✓</span>
     </button>
   </div>
 
@@ -964,6 +1000,77 @@
     </section>
   </div>
 
+  <!-- Sección Escrituras: listado de carpetas -->
+  <div id="seccionCarpetas" class="oculto">
+    <section class="panel">
+      <h2 id="tituloFormCarpeta">Agregar escritura</h2>
+      <form id="formCarpeta" class="form-grid">
+        <div class="campo">
+          <label for="caratulaCarpeta">Escritura / Carátula</label>
+          <input type="text" id="caratulaCarpeta" required placeholder="Ej.: Compraventa Pérez a García">
+        </div>
+        <div class="campo">
+          <label for="numeroCarpeta">Carpeta N°</label>
+          <input type="text" id="numeroCarpeta" placeholder="Ej.: 102">
+        </div>
+        <div class="campo">
+          <label for="anioCarpeta">Año</label>
+          <input type="text" id="anioCarpeta" placeholder="Ej.: 2026">
+        </div>
+        <div class="campo">
+          <button type="submit" class="primario" id="btnGuardarCarpeta">Agregar</button>
+          <button type="button" class="secundario" id="btnCancelarCarpeta" style="display:none; margin-top:6px;">Cancelar</button>
+        </div>
+      </form>
+      <p class="nota">Cada escritura abre su propia página con el checklist prescriturario de la carpeta. Todo lo que se carga acá lo ven los cinco integrantes al instante.</p>
+    </section>
+
+    <section class="panel">
+      <div class="barra-tabla">
+        <h2 style="margin:0;">Escrituras</h2>
+        <div class="acciones-globales">
+          <button type="button" class="secundario" id="btnExportarCarpetas">Exportar respaldo</button>
+          <button type="button" class="secundario" id="btnImportarCarpetas">Importar respaldo</button>
+          <input type="file" id="inputImportarCarpetas" accept=".json,application/json" style="display:none;">
+        </div>
+      </div>
+      <div class="contenedor-tabla">
+        <table>
+          <thead>
+            <tr>
+              <th>Escritura</th>
+              <th>Carpeta</th>
+              <th>Año</th>
+              <th>Checklist</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="cuerpoTablaCarpetas"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- Subpágina de una escritura: checklist prescriturario -->
+  <div id="seccionCarpeta" class="oculto">
+    <div class="barra-volver">
+      <button type="button" class="secundario" id="btnVolverCarpetas">← Volver a Escrituras</button>
+      <span id="rotuloCarpeta" class="rotulo-carpeta"></span>
+    </div>
+    <div class="carpeta-detalle">
+      <aside class="carpeta-lateral">
+        <div class="panel">
+          <h2 class="panel-titulo">Avance</h2>
+          <p class="avance-total" id="avanceCarpeta">0 de 56 respondidas</p>
+          <div class="barra-progreso"><span id="barraCarpeta"></span></div>
+          <div id="avancePorBloque"></div>
+          <p class="nota" style="margin-top:12px;">Acá va a ir el checklist de tareas, con tilde y fecha de cuándo se hizo cada cosa.</p>
+        </div>
+      </aside>
+      <div id="cuestionarioCarpeta"></div>
+    </div>
+  </div>
+
 </main>
 
 <script>
@@ -991,6 +1098,7 @@
   var COLECCION_FACTURAR = "porFacturar"; // trabajos hechos pendientes de facturación
   var COLECCION_SERV = "serviciosMensuales";  // pagos mensuales (expensas, luz, teléfono…)
   var COLECCION_CARGAS = "cargasNotariales";  // aportes e impuestos de la escribanía
+  var COLECCION_CARPETAS = "carpetas";        // escrituras a firmar, con su checklist prescriturario
   var DIAS_AVISO_MENSUAL = 10; // mensuales: alerta cuando faltan 10 días o menos
   var DIAS_AVISO_CERT = 5;  // certificados: alerta cuando faltan 5 días o menos
   var DIAS_AVISO_INSC = 15; // inscripciones: alerta cuando faltan 15 días o menos
@@ -1016,8 +1124,105 @@
     { col: COLECCION_SERV, sufijo: "Serv", seccion: "serv", nombreSeccion: "Servicios" },
     { col: COLECCION_CARGAS, sufijo: "Cargas", seccion: "cargas", nombreSeccion: "DDJJ mensuales" }
   ];
+  // ---------- Checklist prescriturario (el de la carpeta física) ----------
+  // Cada pregunta: id (clave con la que se guarda), texto, tipo y, si hace falta,
+  // opciones propias, una ayuda debajo y un campo de observaciones.
+  var SI_NO = ["Sí", "No"];
+  var SI_NO_NC = ["Sí", "No", "No corresponde"];
+
+  var CHECKLIST = [
+    { bloque: "Pre escriturarios", preguntas: [
+      { id: "fichasFecha", texto: "¿En qué fecha recibimos fichas de datos personales?", tipo: "fecha" },
+      { id: "dniDocumentacion", texto: "¿Enviaron DNI + documentación adicional?", tipo: "opcion", opciones: SI_NO, ayuda: "Personería, ABL, ARBA", nota: true },
+      { id: "estudioTitulo", texto: "¿Se hace estudio de título o minuta insistida?", tipo: "opcion", opciones: ["Estudio de título", "Minuta insistida"] },
+      { id: "asentimientoConyugal", texto: "¿Asentimiento conyugal corresponde?", tipo: "opcion", opciones: SI_NO_NC, nota: true, etiquetaNota: "Datos del cónyuge" },
+      { id: "conformidad3ro", texto: "¿Conformidad de 3ro?", tipo: "opcion", opciones: SI_NO_NC, ayuda: "Ej.: donación entre hermanos, usufructuario, sucesión", nota: true },
+      { id: "tituloOriginal", texto: "¿Título original trajeron o dejaron?", tipo: "opcion", opciones: ["Trajeron", "Dejaron", "No lo tienen"] },
+      { id: "desafectacionVivienda", texto: "¿Desafectación régimen protección vivienda?", tipo: "opcion", opciones: SI_NO_NC },
+      { id: "afectacionVivienda", texto: "¿Afectación régimen protección vivienda?", tipo: "opcion", opciones: SI_NO_NC },
+      { id: "boletoCesion", texto: "¿Boleto o cesión con o sin posesión?", tipo: "opcion", opciones: ["No hay boleto", "Con posesión", "Sin posesión"] },
+      { id: "boletoSellado", texto: "¿Está sellado?", tipo: "opcion", opciones: SI_NO_NC },
+      { id: "confronte", texto: "¿Confronte se hizo?", tipo: "opcion", opciones: SI_NO },
+      { id: "calculoServicios", texto: "¿Cálculo de servicios se hizo?", tipo: "opcion", opciones: SI_NO }
+    ]},
+    { bloque: "Impuestos", preguntas: [
+      { id: "sellosPaga", texto: "¿Sellos paga?", tipo: "opcion", opciones: SI_NO_NC },
+      { id: "sellosExento", texto: "¿Exento?", tipo: "opcion", opciones: SI_NO, ayuda: "Exento hasta $205.332.000" },
+      { id: "ganancias3", texto: "¿Ganancias 3% paga?", tipo: "opcion", opciones: SI_NO_NC },
+      { id: "cedular", texto: "¿Cedular?", tipo: "opcion", opciones: SI_NO_NC, ayuda: "Desde 2018" },
+      { id: "reemplazoBienUso", texto: "¿Reemplazo de bien de uso?", tipo: "opcion", opciones: SI_NO_NC },
+      { id: "esVivienda", texto: "¿Es vivienda? Dejo constancias", tipo: "opcion", opciones: SI_NO, nota: true },
+      { id: "itgbPaga", texto: "¿ITGB paga?", tipo: "opcion", opciones: SI_NO_NC, ayuda: "Que traigan declaración y comprobante de pago" },
+      { id: "certOrigenFondos", texto: "¿Traen certificado de origen de fondos?", tipo: "opcion", opciones: SI_NO_NC, ayuda: "$250.460.000 — 700 SMVM (a abril)" },
+      { id: "origenFondosLegalizado", texto: "¿Está legalizado?", tipo: "opcion", opciones: SI_NO_NC }
+    ]},
+    { bloque: "Certificados", subgrupos: [
+      { titulo: "Dominio", preguntas: [
+        { id: "dominioFechaPedido", texto: "¿Fecha de pedido?", tipo: "fecha" },
+        { id: "dominioVto", texto: "¿Vencimiento?", tipo: "fecha" },
+        { id: "dominioGravamenes", texto: "¿Gravámenes?", tipo: "opcion", opciones: SI_NO, nota: true },
+        { id: "dominioRelacionado", texto: "¿Se relacionó en la escritura?", tipo: "opcion", opciones: SI_NO },
+        { id: "dominioCuantos", texto: "¿Cuántos dominios?", tipo: "numero" }
+      ]},
+      { titulo: "Inhibiciones", preguntas: [
+        { id: "inhibFechaPedido", texto: "¿Fecha de pedido?", tipo: "fecha" },
+        { id: "inhibVto", texto: "¿Vencimiento?", tipo: "fecha" },
+        { id: "inhibCuantas", texto: "¿Cuántas?", tipo: "numero" },
+        { id: "haySucesion", texto: "¿Hay sucesión?", tipo: "opcion", opciones: SI_NO },
+        { id: "herederos", texto: "¿Cuántos herederos más el causante?", tipo: "numero" }
+      ]},
+      { titulo: "F1 ABL", preguntas: [
+        { id: "ablFechaPedido", texto: "¿Fecha de pedido?", tipo: "fecha" },
+        { id: "ablVto", texto: "¿Vencimiento?", tipo: "fecha" },
+        { id: "ablExento", texto: "¿Está exento?", tipo: "opcion", opciones: SI_NO },
+        { id: "ablBajaExencion", texto: "¿Bajá exención?", tipo: "opcion", opciones: SI_NO_NC },
+        { id: "ablUnidades", texto: "¿Cuántas unidades?", tipo: "numero" },
+        { id: "ablDeuda", texto: "¿Hay deuda?", tipo: "opcion", opciones: SI_NO, nota: true }
+      ]},
+      { titulo: "Catastro", preguntas: [
+        { id: "catastroVigente", texto: "¿Vigente estado parcelario?", tipo: "opcion", opciones: SI_NO },
+        { id: "catastroPedido", texto: "¿Pedido certificado de catastro?", tipo: "opcion", opciones: SI_NO_NC },
+        { id: "catastroDeuda", texto: "¿Hay deuda?", tipo: "opcion", opciones: SI_NO, nota: true }
+      ]},
+      { titulo: "Municipal", preguntas: [
+        { id: "municipalGestor", texto: "¿Fecha de entrega al gestor?", tipo: "fecha" }
+      ]},
+      { titulo: "Aysa", preguntas: [
+        { id: "aysaFechaPedido", texto: "¿Fecha de pedido?", tipo: "fecha" },
+        { id: "aysaVto", texto: "¿Vencimiento?", tipo: "fecha" },
+        { id: "aysaDeuda", texto: "¿Hay deuda?", tipo: "opcion", opciones: SI_NO, nota: true }
+      ]},
+      { titulo: "Expensas", preguntas: [
+        { id: "expensasFechaPedido", texto: "¿Fecha de pedido?", tipo: "fecha" },
+        { id: "expensasDeuda", texto: "¿Hay deuda?", tipo: "opcion", opciones: SI_NO, nota: true },
+        { id: "expensasJuicios", texto: "¿Juicios?", tipo: "opcion", opciones: SI_NO, nota: true },
+        { id: "expensasReglamento", texto: "¿Reglamento recibimos?", tipo: "opcion", opciones: SI_NO }
+      ]}
+    ]},
+    { bloque: "UIF", preguntas: [
+      { id: "uifOrigenFondos", texto: "¿Traen certificado de origen de fondos?", tipo: "opcion", opciones: SI_NO_NC, ayuda: "$250.460.000 — 700 SMVM (a abril)" },
+      { id: "uifOrigenCliente", texto: "¿De dónde surge el cliente?", tipo: "texto" },
+      { id: "uifPep", texto: "¿PEP?", tipo: "opcion", opciones: SI_NO },
+      { id: "uifSujetoObligado", texto: "¿Sujeto obligado?", tipo: "opcion", opciones: SI_NO },
+      { id: "uifOcupacion", texto: "¿Ocupación?", tipo: "texto" },
+      { id: "uifRiesgo", texto: "¿Riesgo?", tipo: "opcion", opciones: ["Bajo", "Medio", "Alto"] },
+      { id: "uifVinculo", texto: "¿Es ocasional o habitual?", tipo: "opcion", opciones: ["Ocasional", "Habitual"] },
+      { id: "uifSupera700", texto: "¿Supera 700 SMVM?", tipo: "opcion", opciones: SI_NO }
+    ]}
+  ];
+
+  // Lista plana de todas las preguntas, para contar el avance
+  var PREGUNTAS = [];
+  CHECKLIST.forEach(function (b) {
+    (b.preguntas || []).forEach(function (p) { PREGUNTAS.push(p); });
+    (b.subgrupos || []).forEach(function (g) { g.preguntas.forEach(function (p) { PREGUNTAS.push(p); }); });
+  });
+
   var mensuales = {};      // col -> lista de conceptos
   var mensualesListos = {}; // col -> bool
+  var carpetas = [];
+  var carpetasListas = false;
+  var carpetaAbiertaId = null;
   MENSUALES.forEach(function (cfg) { mensuales[cfg.col] = []; mensualesListos[cfg.col] = false; });
   var fb = null; // { db, auth, fs, au } — SDK y conexiones una vez inicializado
 
@@ -1352,9 +1557,13 @@
     document.getElementById("seccionFacturar").classList.toggle("oculto", nombre !== "facturar");
     document.getElementById("seccionServ").classList.toggle("oculto", nombre !== "serv");
     document.getElementById("seccionCargas").classList.toggle("oculto", nombre !== "cargas");
+    document.getElementById("seccionCarpetas").classList.toggle("oculto", nombre !== "carpetas");
+    document.getElementById("seccionCarpeta").classList.toggle("oculto", nombre !== "carpeta");
     document.getElementById("navSecciones").classList.toggle("oculto", nombre === "menu");
+    // La subpágina de una escritura no tiene pestaña propia: queda activa la de Escrituras
+    var pestania = nombre === "carpeta" ? "carpetas" : nombre;
     document.querySelectorAll("#navSecciones .nav-tab").forEach(function (tab) {
-      tab.classList.toggle("activa", tab.dataset.seccion === nombre);
+      tab.classList.toggle("activa", tab.dataset.seccion === pestania);
     });
     var titulo = document.getElementById("tituloHeader");
     var sub = document.getElementById("subtituloHeader");
@@ -1376,6 +1585,12 @@
     } else if (nombre === "cargas") {
       titulo.textContent = "🏦 DDJJ mensuales";
       sub.textContent = "Aportes notariales, sellos, caja notarial, ley 404, SICORE — aviso 10 días antes";
+    } else if (nombre === "carpetas") {
+      titulo.textContent = "📁 Escrituras";
+      sub.textContent = "Una carpeta por escritura, con el checklist prescriturario";
+    } else if (nombre === "carpeta") {
+      titulo.textContent = "📁 Checklist de la escritura";
+      sub.textContent = "Prescriturarios · Impuestos · Certificados · UIF";
     } else {
       titulo.textContent = "Seguimiento notarial";
       sub.textContent = "Certificados, inscripciones, pagos y vencimientos";
@@ -1395,6 +1610,11 @@
   document.getElementById("menuFacturar").addEventListener("click", function () { mostrarSeccion("facturar"); });
   document.getElementById("menuServ").addEventListener("click", function () { mostrarSeccion("serv"); });
   document.getElementById("menuCargas").addEventListener("click", function () { mostrarSeccion("cargas"); });
+  document.getElementById("menuCarpetas").addEventListener("click", function () { mostrarSeccion("carpetas"); });
+  document.getElementById("btnVolverCarpetas").addEventListener("click", function () {
+    carpetaAbiertaId = null;
+    mostrarSeccion("carpetas");
+  });
   document.getElementById("btnMenu").addEventListener("click", function () { mostrarSeccion("menu"); });
   document.querySelectorAll("#navSecciones .nav-tab[data-seccion]").forEach(function (tab) {
     tab.addEventListener("click", function () { mostrarSeccion(tab.dataset.seccion); });
@@ -1588,6 +1808,24 @@
     }, function (err) {
       alert("No se pudieron leer los trabajos a facturar: " + err.message);
     });
+    fb.fs.onSnapshot(fb.fs.collection(fb.db, COLECCION_CARPETAS), function (snap) {
+      carpetas = snap.docs.map(function (d) {
+        var datos = d.data();
+        return {
+          id: d.id,
+          caratula: datos.caratula || "",
+          numero: datos.numero || "",
+          anio: datos.anio || "",
+          respuestas: (datos.respuestas && typeof datos.respuestas === "object") ? datos.respuestas : {},
+          notas: (datos.notas && typeof datos.notas === "object") ? datos.notas : {},
+          fechaAlta: datos.fechaAlta || null
+        };
+      });
+      carpetasListas = true;
+      render();
+    }, function (err) {
+      alert("No se pudieron leer las escrituras: " + err.message);
+    });
     MENSUALES.forEach(function (cfg) {
       fb.fs.onSnapshot(fb.fs.collection(fb.db, cfg.col), function (snap) {
         mensuales[cfg.col] = snap.docs.map(function (d) {
@@ -1709,10 +1947,12 @@
     }
   }
 
-  function actualizarContador(id, cantidad) {
+  function actualizarContador(id, cantidad, etiqueta) {
     var el = document.getElementById(id);
-    if (cantidad > 0) { el.className = "contador hay"; el.textContent = cantidad + (cantidad === 1 ? " aviso" : " avisos"); }
-    else { el.className = "contador cero"; el.textContent = "✓ al día"; }
+    if (cantidad > 0) {
+      el.className = "contador hay";
+      el.textContent = etiqueta ? cantidad + " " + etiqueta : cantidad + (cantidad === 1 ? " aviso" : " avisos");
+    } else { el.className = "contador cero"; el.textContent = "✓ al día"; }
   }
 
   function actualizarNavBadge(id, cantidad) {
@@ -1728,7 +1968,9 @@
 
   function editandoEnTabla() {
     var act = document.activeElement;
-    return act && (act.tagName === "INPUT" || act.tagName === "SELECT") && act.closest("tbody");
+    if (!act) return false;
+    var editable = act.tagName === "INPUT" || act.tagName === "SELECT" || act.tagName === "TEXTAREA";
+    return editable && act.closest("tbody, #seccionCarpeta");
   }
 
   // Espera a que se termine de editar: si el foco pasa a otro campo de la misma tabla
@@ -1771,6 +2013,13 @@
       actualizarNavBadge("navBadge" + cfg.sufijo, u.length);
       renderTablaMensual(cfg);
     });
+    var carpetasPendientes = carpetas.filter(function (e) {
+      var a = avanceCarpeta(e); return a.hechas < a.total;
+    }).length;
+    actualizarContador("contadorCarpetas", carpetasPendientes, "sin terminar");
+    actualizarNavBadge("navBadgeCarpetas", carpetasPendientes);
+    renderTablaCarpetas();
+    renderCarpeta();
     renderTablaCert();
     renderTablaInsc();
     renderTablaPagos();
@@ -2333,6 +2582,180 @@
     });
   }
 
+  // ---------- Escrituras (carpetas con checklist prescriturario) ----------
+
+  function carpetaPorId(id) {
+    return carpetas.find(function (x) { return x.id === id; }) || null;
+  }
+
+  // Una pregunta está respondida si tiene algo cargado (el 0 cuenta como respuesta)
+  function respondida(valor) {
+    return valor !== undefined && valor !== null && valor !== "";
+  }
+
+  function avanceCarpeta(e) {
+    var r = e.respuestas || {};
+    var hechas = PREGUNTAS.filter(function (p) { return respondida(r[p.id]); }).length;
+    return { hechas: hechas, total: PREGUNTAS.length };
+  }
+
+  // Guarda una respuesta (o una observación) reemplazando el mapa completo.
+  // Relee la carpeta por id: mientras se edita no se redibuja y el dato podría quedar viejo.
+  function guardarCampo(id, mapa, campo, valor) {
+    var e = carpetaPorId(id);
+    if (!e) return;
+    var copia = {};
+    Object.keys(e[mapa] || {}).forEach(function (k) { copia[k] = e[mapa][k]; });
+    if (respondida(valor)) copia[campo] = valor;
+    else delete copia[campo];
+    var cambios = {};
+    cambios[mapa] = copia;
+    actualizar(COLECCION_CARPETAS, id, cambios);
+  }
+
+  function renderTablaCarpetas() {
+    var cuerpo = document.getElementById("cuerpoTablaCarpetas");
+    cuerpo.innerHTML = "";
+    if (carpetas.length === 0) {
+      var tr0 = document.createElement("tr");
+      var td0 = crearElemento("td", "vacio", carpetasListas
+        ? "Todavía no hay escrituras cargadas. Agregá la primera con el formulario de arriba."
+        : "Cargando datos compartidos…");
+      td0.colSpan = 5; tr0.appendChild(td0); cuerpo.appendChild(tr0);
+      return;
+    }
+    carpetas.slice().sort(function (a, b) {
+      return (b.fechaAlta || "") < (a.fechaAlta || "") ? -1 : 1;
+    }).forEach(function (e) {
+      var av = avanceCarpeta(e);
+      var tr = document.createElement("tr");
+      tr.appendChild(celdaNombre(e.caratula, {
+        editar: function () { comenzarEdicionCarpeta(e.id); },
+        eliminar: function () {
+          if (confirm("¿Eliminar la escritura «" + e.caratula + "» y todo su checklist, para todos los usuarios?")) {
+            if (idEnEdicionCarpeta === e.id) cancelarEdicionCarpeta();
+            if (carpetaAbiertaId === e.id) { carpetaAbiertaId = null; mostrarSeccion("carpetas"); }
+            eliminar(COLECCION_CARPETAS, e.id);
+          }
+        }
+      }));
+      tr.appendChild(crearElemento("td", "numero", e.numero || "—"));
+      tr.appendChild(crearElemento("td", "numero", e.anio || "—"));
+      var tdAv = crearElemento("td", "numero");
+      tdAv.appendChild(crearElemento("span", "badge " + (av.hechas === av.total ? "presentada" : "pendiente"),
+        av.hechas + " de " + av.total));
+      tr.appendChild(tdAv);
+      var tdAbrir = crearElemento("td", "numero");
+      var btn = crearElemento("button", "secundario", "Abrir checklist");
+      btn.type = "button";
+      btn.addEventListener("click", function () { abrirCarpeta(e.id); });
+      tdAbrir.appendChild(btn);
+      tr.appendChild(tdAbrir);
+      cuerpo.appendChild(tr);
+    });
+  }
+
+  function abrirCarpeta(id) {
+    carpetaAbiertaId = id;
+    mostrarSeccion("carpeta");
+  }
+
+  // Un campo del cuestionario, según el tipo de la pregunta
+  function campoPregunta(e, p) {
+    var valor = (e.respuestas || {})[p.id];
+    var campo;
+    if (p.tipo === "opcion") {
+      campo = document.createElement("select");
+      campo.appendChild(crearElemento("option", null, "—"));
+      p.opciones.forEach(function (o) {
+        var op = crearElemento("option", null, o);
+        op.value = o;
+        campo.appendChild(op);
+      });
+      campo.value = valor || "";
+    } else {
+      campo = document.createElement("input");
+      campo.type = p.tipo === "fecha" ? "date" : p.tipo === "numero" ? "number" : "text";
+      if (p.tipo === "numero") campo.min = "0";
+      if (p.tipo === "texto") campo.placeholder = "Escribí la respuesta";
+      campo.value = valor === undefined || valor === null ? "" : valor;
+    }
+    campo.setAttribute("aria-label", p.texto);
+    campo.addEventListener("change", function () {
+      if (p.tipo === "fecha" && !anioPlausible(campo.value)) return;
+      var v = p.tipo === "numero" ? (campo.value === "" ? "" : aNumero(campo.value)) : campo.value;
+      guardarCampo(e.id, "respuestas", p.id, v);
+    });
+    return campo;
+  }
+
+  function renderCarpeta() {
+    var e = carpetaPorId(carpetaAbiertaId);
+    var cont = document.getElementById("cuestionarioCarpeta");
+    if (!e) {
+      cont.innerHTML = "";
+      document.getElementById("rotuloCarpeta").textContent = "";
+      return;
+    }
+
+    var rotulo = document.getElementById("rotuloCarpeta");
+    rotulo.textContent = e.caratula;
+    if (e.numero || e.anio) {
+      rotulo.appendChild(crearElemento("span", "carpeta-num",
+        "Carpeta " + (e.numero || "—") + " · " + (e.anio || "—")));
+    }
+
+    // --- Cuestionario ---
+    cont.innerHTML = "";
+    CHECKLIST.forEach(function (b) {
+      var panel = crearElemento("section", "panel bloque-checklist");
+      panel.appendChild(crearElemento("h2", null, b.bloque));
+      if (b.preguntas) b.preguntas.forEach(function (p) { panel.appendChild(filaPregunta(e, p)); });
+      (b.subgrupos || []).forEach(function (g) {
+        panel.appendChild(crearElemento("h3", "subgrupo-titulo", g.titulo));
+        g.preguntas.forEach(function (p) { panel.appendChild(filaPregunta(e, p)); });
+      });
+      cont.appendChild(panel);
+    });
+
+    // --- Lateral: avance ---
+    var av = avanceCarpeta(e);
+    document.getElementById("avanceCarpeta").textContent = av.hechas + " de " + av.total + " respondidas";
+    document.getElementById("barraCarpeta").style.width = Math.round(av.hechas / av.total * 100) + "%";
+    var lat = document.getElementById("avancePorBloque");
+    lat.innerHTML = "";
+    CHECKLIST.forEach(function (b) {
+      var lista = (b.preguntas || []).slice();
+      (b.subgrupos || []).forEach(function (g) { lista = lista.concat(g.preguntas); });
+      var hechas = lista.filter(function (p) { return respondida(e.respuestas[p.id]); }).length;
+      var fila = crearElemento("div", "avance-bloque" + (hechas === lista.length ? " completo" : ""));
+      fila.appendChild(crearElemento("span", null, b.bloque));
+      fila.appendChild(crearElemento("span", "cuenta", hechas + "/" + lista.length));
+      lat.appendChild(fila);
+    });
+  }
+
+  function filaPregunta(e, p) {
+    var cont = crearElemento("div", "pregunta" + (respondida(e.respuestas[p.id]) ? " respondida" : ""));
+    cont.appendChild(crearElemento("label", "pregunta-texto", p.texto));
+    if (p.ayuda) cont.appendChild(crearElemento("span", "pregunta-ayuda", p.ayuda));
+    var campos = crearElemento("div", "pregunta-campos");
+    campos.appendChild(campoPregunta(e, p));
+    if (p.nota) {
+      campos.appendChild(crearElemento("span", "etiqueta-nota", (p.etiquetaNota || "Observaciones") + ":"));
+      var nota = document.createElement("input");
+      nota.type = "text";
+      nota.value = (e.notas || {})[p.id] || "";
+      nota.setAttribute("aria-label", (p.etiquetaNota || "Observaciones") + " de: " + p.texto);
+      nota.addEventListener("change", function () {
+        guardarCampo(e.id, "notas", p.id, nota.value.trim());
+      });
+      campos.appendChild(nota);
+    }
+    cont.appendChild(campos);
+    return cont;
+  }
+
   function textoDias(dias) {
     if (dias === null || dias === undefined) return "—";
     if (dias < 0) return "Vencido hace " + Math.abs(dias) + " día" + (Math.abs(dias) === 1 ? "" : "s");
@@ -2639,6 +3062,69 @@
     a.click();
     URL.revokeObjectURL(a.href);
   }
+
+  // ---------- Escrituras: alta, edición y respaldo ----------
+  var idEnEdicionCarpeta = null;
+
+  function comenzarEdicionCarpeta(id) {
+    var e = carpetaPorId(id);
+    if (!e) return;
+    idEnEdicionCarpeta = id;
+    document.getElementById("caratulaCarpeta").value = e.caratula;
+    document.getElementById("numeroCarpeta").value = e.numero || "";
+    document.getElementById("anioCarpeta").value = e.anio || "";
+    document.getElementById("tituloFormCarpeta").textContent = "Editar escritura";
+    document.getElementById("btnGuardarCarpeta").textContent = "Guardar cambios";
+    document.getElementById("btnCancelarCarpeta").style.display = "inline-block";
+    document.getElementById("caratulaCarpeta").focus();
+  }
+
+  function cancelarEdicionCarpeta() {
+    idEnEdicionCarpeta = null;
+    document.getElementById("formCarpeta").reset();
+    document.getElementById("tituloFormCarpeta").textContent = "Agregar escritura";
+    document.getElementById("btnGuardarCarpeta").textContent = "Agregar";
+    document.getElementById("btnCancelarCarpeta").style.display = "none";
+  }
+  document.getElementById("btnCancelarCarpeta").addEventListener("click", cancelarEdicionCarpeta);
+
+  document.getElementById("formCarpeta").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var datos = {
+      caratula: document.getElementById("caratulaCarpeta").value.trim(),
+      numero: document.getElementById("numeroCarpeta").value.trim(),
+      anio: document.getElementById("anioCarpeta").value.trim()
+    };
+    if (!datos.caratula) return;
+    if (idEnEdicionCarpeta !== null) actualizar(COLECCION_CARPETAS, idEnEdicionCarpeta, datos);
+    else agregar(COLECCION_CARPETAS, Object.assign({}, datos, { respuestas: {}, notas: {}, fechaAlta: hoyISO() }));
+    cancelarEdicionCarpeta();
+  });
+
+  document.getElementById("btnExportarCarpetas").addEventListener("click", function () {
+    var datos = carpetas.map(function (e) {
+      return { caratula: e.caratula, numero: e.numero || "", anio: e.anio || "",
+               respuestas: e.respuestas || {}, notas: e.notas || {}, fechaAlta: e.fechaAlta || null };
+    });
+    descargar("escrituras-" + hoyISO() + ".json", JSON.stringify(datos, null, 2));
+  });
+  document.getElementById("btnImportarCarpetas").addEventListener("click", function () {
+    document.getElementById("inputImportarCarpetas").click();
+  });
+  document.getElementById("inputImportarCarpetas").addEventListener("change", function (ev) {
+    leerArchivo(ev, function (datos) {
+      var validas = datos.filter(function (x) { return x && typeof x.caratula === "string" && x.caratula; });
+      if (!confirm("Se van a importar " + validas.length + " escrituras y se reemplazará el listado compartido que ven los cinco. ¿Continuar?")) return;
+      reemplazarTodo(COLECCION_CARPETAS, carpetas, validas.map(function (x) {
+        return { caratula: x.caratula, numero: x.numero || "", anio: x.anio || "",
+                 respuestas: (x.respuestas && typeof x.respuestas === "object") ? x.respuestas : {},
+                 notas: (x.notas && typeof x.notas === "object") ? x.notas : {},
+                 fechaAlta: x.fechaAlta || hoyISO() };
+      }));
+      carpetaAbiertaId = null;
+      cancelarEdicionCarpeta();
+    });
+  });
 
   document.getElementById("btnExportarCert").addEventListener("click", function () {
     var datos = certificados.map(function (e) {
