@@ -201,12 +201,16 @@
   .resumen-valor { display: block; font-size: 1.35rem; font-weight: 800; color: var(--azul); }
   .resumen-etiqueta { display: block; font-size: 0.8rem; color: var(--gris-texto); margin-top: 2px; }
 
+  .paneles-proximos {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
   .panel-proximos {
     background: var(--blanco);
     border: 1px solid var(--gris-borde);
     border-radius: 12px;
     padding: 14px 18px;
-    margin-bottom: 12px;
   }
   .panel-titulo {
     font-size: 0.95rem;
@@ -477,9 +481,15 @@
 
   <!-- Menú de secciones -->
   <div id="pantallaMenu">
-    <div class="panel-proximos">
-      <h2 class="panel-titulo">⏱ Certificados próximos a vencer</h2>
-      <div id="listaProximos"></div>
+    <div class="paneles-proximos">
+      <div class="panel-proximos">
+        <h2 class="panel-titulo">⏱ Certificados próximos a vencer</h2>
+        <div id="listaProximos"></div>
+      </div>
+      <div class="panel-proximos">
+        <h2 class="panel-titulo">🏛 Inscripciones próximas a vencer</h2>
+        <div id="listaProximasInsc"></div>
+      </div>
     </div>
     <div class="tarjetas-resumen">
       <div class="tarjeta-resumen">
@@ -1670,6 +1680,21 @@
   // Panel de certificados más próximos a vencer (pantalla de inicio)
   var MAX_PROXIMOS = 5;
 
+  // Una fila del panel: nombre · fecha límite · badge con el estado y los días
+  function filaProxima(nombre, info, etiqueta, seccion) {
+    var fila = crearElemento("div", "fila-proxima");
+    fila.appendChild(crearElemento("span", "proxima-nombre", nombre));
+    fila.appendChild(crearElemento("span", "proxima-vence", etiqueta + " " + formatear(info.vencimiento)));
+    var d = info.diasRestantes;
+    var dias = Math.abs(d) + (Math.abs(d) === 1 ? " día" : " días");
+    var texto = d < 0 ? info.textoEstado + " hace " + dias
+      : d === 0 ? info.textoEstado
+      : info.textoEstado + " · " + dias;
+    fila.appendChild(crearElemento("span", "badge " + info.estado, texto));
+    fila.addEventListener("click", function () { mostrarSeccion(seccion); });
+    return fila;
+  }
+
   function renderProximos() {
     var cont = document.getElementById("listaProximos");
     cont.innerHTML = "";
@@ -1689,16 +1714,7 @@
         : "Cargando datos compartidos…"));
     } else {
       pedidos.slice(0, MAX_PROXIMOS).forEach(function (p) {
-        var fila = crearElemento("div", "fila-proxima");
-        fila.appendChild(crearElemento("span", "proxima-nombre", p.cert.nombre));
-        fila.appendChild(crearElemento("span", "proxima-vence", "Vence " + formatear(p.info.vencimiento)));
-        var d = p.info.diasRestantes;
-        var texto = d < 0 ? textoDias(d)
-          : d === 0 ? "¡Vence hoy!"
-          : p.info.textoEstado + " · " + d + (d === 1 ? " día" : " días");
-        fila.appendChild(crearElemento("span", "badge " + p.info.estado, texto));
-        fila.addEventListener("click", function () { mostrarSeccion("certificados"); });
-        cont.appendChild(fila);
+        cont.appendChild(filaProxima(p.cert.nombre, p.info, "Vence", "certificados"));
       });
     }
 
@@ -1708,9 +1724,32 @@
     }
   }
 
+  function renderProximosInsc() {
+    var cont = document.getElementById("listaProximasInsc");
+    cont.innerHTML = "";
+
+    var pendientes = [];
+    inscripciones.forEach(function (e) {
+      var info = calcularInsc(e);
+      if (info.estado !== "presentada") pendientes.push({ insc: e, info: info });
+    });
+    pendientes.sort(function (a, b) { return a.info.diasRestantes - b.info.diasRestantes; });
+
+    if (pendientes.length === 0) {
+      cont.appendChild(crearElemento("p", "panel-vacio", inscListos
+        ? "No hay escrituras pendientes de inscribir."
+        : "Cargando datos compartidos…"));
+      return;
+    }
+    pendientes.slice(0, MAX_PROXIMOS).forEach(function (p) {
+      cont.appendChild(filaProxima(p.insc.nombre, p.info, "Inscribir antes del", "inscripciones"));
+    });
+  }
+
   // Tarjetas de resumen del menú
   function renderResumen() {
     renderProximos();
+    renderProximosInsc();
     var sinFacturar = porFacturar.reduce(function (acc, e) { return acc + (e.fechaFactura ? 0 : aNumero(e.presupuesto)); }, 0);
     var proximos = 0;
     certificados.forEach(function (e) {
