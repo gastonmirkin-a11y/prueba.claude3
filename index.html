@@ -231,7 +231,35 @@
   .proxima-nombre { font-weight: 600; }
   .proxima-vence { font-size: 0.85rem; color: var(--gris-texto); white-space: nowrap; }
   .panel-vacio { font-size: 0.9rem; color: var(--gris-texto); }
-  .panel-aviso { font-size: 0.85rem; color: var(--gris-texto); margin-top: 8px; }
+
+  /* Bloque destacado: qué certificados hay que pedir */
+  .aviso-pedir {
+    background: var(--rojo-fondo);
+    border: 1px solid #f0b5ae;
+    border-left: 4px solid var(--rojo);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+  }
+  .aviso-pedir-titulo {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--rojo-oscuro);
+    margin-bottom: 4px;
+  }
+  .aviso-pedir-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: baseline;
+    padding: 5px 0;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  .aviso-pedir-item + .aviso-pedir-item { border-top: 1px solid #f0b5ae; }
+  .aviso-pedir-nombre { font-weight: 700; color: var(--rojo-oscuro); }
+  .aviso-pedir-motivo { font-size: 0.85rem; color: var(--rojo-oscuro); }
+  .aviso-pedir-mas { font-size: 0.85rem; color: var(--rojo-oscuro); margin-top: 6px; }
 
   form.form-grid {
     display: grid;
@@ -1030,17 +1058,18 @@
       diasRestantes: null,
       estado: null,
       textoEstado: null,
-      noLlega: false
+      noLlega: false,
+      hayQuePedir: false // un certificado vencido ya no sirve: hay que pedir otro
     };
     if (e.fechaPedido) {
       info.vencimiento = sumarDias(e.fechaPedido, plazo - 1);
       info.diasRestantes = diferenciaDias(hoy, info.vencimiento);
       info.noLlega = diferenciaDias(info.vencimiento, e.fechaEscritura) > 0;
-      if (info.diasRestantes < 0) { info.estado = "vencido"; info.textoEstado = "Vencido"; }
+      if (info.diasRestantes < 0) { info.estado = "vencido"; info.textoEstado = "Hay que pedir de nuevo"; info.hayQuePedir = true; }
       else if (info.diasRestantes <= DIAS_AVISO_CERT) { info.estado = "por-vencer"; info.textoEstado = info.diasRestantes === 0 ? "¡Vence hoy!" : "Por vencer"; }
       else { info.estado = "vigente"; info.textoEstado = "Vigente"; }
     } else {
-      if (diferenciaDias(info.fechaSugerida, hoy) >= 0) { info.estado = "hay-que-pedir"; info.textoEstado = "Hay que pedir"; }
+      if (diferenciaDias(info.fechaSugerida, hoy) >= 0) { info.estado = "hay-que-pedir"; info.textoEstado = "Hay que pedir"; info.hayQuePedir = true; }
       else { info.estado = "pendiente"; info.textoEstado = "Pendiente de pedir"; }
     }
     return info;
@@ -1699,29 +1728,58 @@
     var cont = document.getElementById("listaProximos");
     cont.innerHTML = "";
 
-    var pedidos = [];
-    var hayQuePedir = 0;
+    var hoy = hoyISO();
+    var pedir = [];    // hay que pedirlos: vencidos o nunca pedidos con la fecha límite pasada
+    var vigentes = []; // pedidos y todavía útiles
     certificados.forEach(function (e) {
       var info = calcularCert(e);
-      if (info.vencimiento) pedidos.push({ cert: e, info: info });
-      else if (info.estado === "hay-que-pedir") hayQuePedir++;
+      if (info.hayQuePedir) pedir.push({ cert: e, info: info });
+      else if (info.vencimiento) vigentes.push({ cert: e, info: info });
     });
-    pedidos.sort(function (a, b) { return a.info.diasRestantes - b.info.diasRestantes; });
+    // Primero las escrituras que todavía no pasaron (la más próxima arriba);
+    // después las ya pasadas, de la más reciente a la más vieja.
+    pedir.sort(function (a, b) {
+      var pa = a.cert.fechaEscritura < hoy ? 1 : 0;
+      var pb = b.cert.fechaEscritura < hoy ? 1 : 0;
+      if (pa !== pb) return pa - pb;
+      if (a.cert.fechaEscritura === b.cert.fechaEscritura) return 0;
+      var antes = a.cert.fechaEscritura < b.cert.fechaEscritura ? -1 : 1;
+      return pa === 1 ? -antes : antes;
+    });
+    vigentes.sort(function (a, b) { return a.info.diasRestantes - b.info.diasRestantes; });
 
-    if (pedidos.length === 0) {
+    if (pedir.length > 0) cont.appendChild(bloquePedir(pedir));
+
+    if (vigentes.length === 0) {
       cont.appendChild(crearElemento("p", "panel-vacio", certListos
         ? "No hay certificados pedidos con vencimiento en curso."
         : "Cargando datos compartidos…"));
     } else {
-      pedidos.slice(0, MAX_PROXIMOS).forEach(function (p) {
+      vigentes.slice(0, MAX_PROXIMOS).forEach(function (p) {
         cont.appendChild(filaProxima(p.cert.nombre, p.info, "Vence", "certificados"));
       });
     }
+  }
 
-    if (hayQuePedir > 0) {
-      cont.appendChild(crearElemento("p", "panel-aviso", "Hay " + hayQuePedir + " certificado" +
-        (hayQuePedir === 1 ? "" : "s") + " que ya habría que pedir."));
+  // Bloque destacado con los certificados que hay que pedir, uno por uno
+  function bloquePedir(pedir) {
+    var caja = crearElemento("div", "aviso-pedir");
+    caja.appendChild(crearElemento("div", "aviso-pedir-titulo",
+      "⚠ Hay que pedir certificados (" + pedir.length + ")"));
+    pedir.slice(0, MAX_PROXIMOS).forEach(function (p) {
+      var item = crearElemento("div", "aviso-pedir-item");
+      item.appendChild(crearElemento("span", "aviso-pedir-nombre", p.cert.nombre));
+      item.appendChild(crearElemento("span", "aviso-pedir-motivo", p.info.vencimiento
+        ? "Venció el " + formatear(p.info.vencimiento) + ", pedir de nuevo"
+        : "Escritura el " + formatear(p.cert.fechaEscritura) + ", pedir ya"));
+      item.addEventListener("click", function () { mostrarSeccion("certificados"); });
+      caja.appendChild(item);
+    });
+    if (pedir.length > MAX_PROXIMOS) {
+      caja.appendChild(crearElemento("p", "aviso-pedir-mas",
+        "y " + (pedir.length - MAX_PROXIMOS) + " más"));
     }
+    return caja;
   }
 
   function renderProximosInsc() {
