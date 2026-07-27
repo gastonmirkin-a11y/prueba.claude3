@@ -1135,6 +1135,7 @@
       { id: "fichasFecha", texto: "¿En qué fecha recibimos fichas de datos personales?", tipo: "fecha" },
       { id: "dniDocumentacion", texto: "¿Enviaron DNI + documentación adicional?", tipo: "opcion", opciones: SI_NO, ayuda: "Personería, ABL, ARBA", nota: true },
       { id: "estudioTitulo", texto: "¿Se hace estudio de título o minuta insistida?", tipo: "opcion", opciones: ["Estudio de título", "Minuta insistida"] },
+      { id: "estudioTituloQuien", texto: "¿Quién hace el estudio de título?", tipo: "opcion", opciones: ["La escribanía", "Referencista"], nota: true, dependeDe: { id: "estudioTitulo", valor: "Estudio de título" } },
       { id: "asentimientoConyugal", texto: "¿Asentimiento conyugal corresponde?", tipo: "opcion", opciones: SI_NO_NC, nota: true, etiquetaNota: "Datos del cónyuge" },
       { id: "conformidad3ro", texto: "¿Conformidad de 3ro?", tipo: "opcion", opciones: SI_NO_NC, ayuda: "Ej.: donación entre hermanos, usufructuario, sucesión", nota: true },
       { id: "tituloOriginal", texto: "¿Título original trajeron o dejaron?", tipo: "opcion", opciones: ["Trajeron", "Dejaron", "No lo tienen"] },
@@ -2593,10 +2594,21 @@
     return valor !== undefined && valor !== null && valor !== "";
   }
 
+  // Una pregunta condicional solo aplica si la de la que depende tiene el valor esperado
+  function aplica(e, p) {
+    if (!p.dependeDe) return true;
+    return (e.respuestas || {})[p.dependeDe.id] === p.dependeDe.valor;
+  }
+
+  function preguntasQueAplican(e, lista) {
+    return (lista || PREGUNTAS).filter(function (p) { return aplica(e, p); });
+  }
+
   function avanceCarpeta(e) {
     var r = e.respuestas || {};
-    var hechas = PREGUNTAS.filter(function (p) { return respondida(r[p.id]); }).length;
-    return { hechas: hechas, total: PREGUNTAS.length };
+    var aplicables = preguntasQueAplican(e);
+    var hechas = aplicables.filter(function (p) { return respondida(r[p.id]); }).length;
+    return { hechas: hechas, total: aplicables.length };
   }
 
   // Guarda una respuesta (o una observación) reemplazando el mapa completo.
@@ -2608,9 +2620,56 @@
     Object.keys(e[mapa] || {}).forEach(function (k) { copia[k] = e[mapa][k]; });
     if (respondida(valor)) copia[campo] = valor;
     else delete copia[campo];
+
+    // Al cambiar una respuesta, lo que dependía de ella y ya no aplica se borra:
+    // si no, quedaría un dato escondido que después contradice al checklist.
+    var extra = null;
+    if (mapa === "respuestas") {
+      var notas = null;
+      PREGUNTAS.forEach(function (p) {
+        if (!p.dependeDe || p.dependeDe.id !== campo) return;
+        if (valor === p.dependeDe.valor) return;
+        delete copia[p.id];
+        if ((e.notas || {})[p.id] !== undefined) {
+          if (!notas) {
+            notas = {};
+            Object.keys(e.notas || {}).forEach(function (k) { notas[k] = e.notas[k]; });
+          }
+          delete notas[p.id];
+        }
+      });
+      if (notas) extra = notas;
+    }
+
     var cambios = {};
     cambios[mapa] = copia;
+    if (extra) cambios.notas = extra;
+
+    // Se actualiza la copia en memoria para poder refrescar la pantalla en el acto,
+    // sin esperar al onSnapshot (que además llega con el render diferido por el foco).
+    e[mapa] = copia;
+    if (extra) e.notas = extra;
     actualizar(COLECCION_CARPETAS, id, cambios);
+    refrescarCarpeta(e);
+  }
+
+  // Refresca lo que cambia al responder, sin rehacer el cuestionario:
+  // así no se pierde el foco y la sub-pregunta aparece en el momento.
+  function refrescarCarpeta(e) {
+    if (!e || carpetaAbiertaId !== e.id) return;
+    aplicarDependencias(e);
+    document.querySelectorAll("#cuestionarioCarpeta .pregunta[data-id]").forEach(function (el) {
+      el.classList.toggle("respondida", respondida((e.respuestas || {})[el.dataset.id]));
+    });
+    renderAvanceCarpeta(e);
+    renderTablaCarpetas();
+  }
+
+  function aplicarDependencias(e) {
+    document.querySelectorAll("#cuestionarioCarpeta .pregunta[data-id]").forEach(function (el) {
+      var p = PREGUNTAS.find(function (x) { return x.id === el.dataset.id; });
+      if (p && p.dependeDe) el.classList.toggle("oculto", !aplica(e, p));
+    });
   }
 
   function renderTablaCarpetas() {
@@ -2666,7 +2725,9 @@
     var campo;
     if (p.tipo === "opcion") {
       campo = document.createElement("select");
-      campo.appendChild(crearElemento("option", null, "—"));
+      var vacia = crearElemento("option", null, "—"); // elegir el blanco borra la respuesta
+      vacia.value = "";
+      campo.appendChild(vacia);
       p.opciones.forEach(function (o) {
         var op = crearElemento("option", null, o);
         op.value = o;
@@ -2717,8 +2778,13 @@
       });
       cont.appendChild(panel);
     });
+    aplicarDependencias(e);
 
-    // --- Lateral: avance ---
+    renderAvanceCarpeta(e);
+  }
+
+  // Lateral: avance total y por bloque, contando solo las preguntas que aplican
+  function renderAvanceCarpeta(e) {
     var av = avanceCarpeta(e);
     document.getElementById("avanceCarpeta").textContent = av.hechas + " de " + av.total + " respondidas";
     document.getElementById("barraCarpeta").style.width = Math.round(av.hechas / av.total * 100) + "%";
@@ -2727,7 +2793,8 @@
     CHECKLIST.forEach(function (b) {
       var lista = (b.preguntas || []).slice();
       (b.subgrupos || []).forEach(function (g) { lista = lista.concat(g.preguntas); });
-      var hechas = lista.filter(function (p) { return respondida(e.respuestas[p.id]); }).length;
+      lista = preguntasQueAplican(e, lista);
+      var hechas = lista.filter(function (p) { return respondida((e.respuestas || {})[p.id]); }).length;
       var fila = crearElemento("div", "avance-bloque" + (hechas === lista.length ? " completo" : ""));
       fila.appendChild(crearElemento("span", null, b.bloque));
       fila.appendChild(crearElemento("span", "cuenta", hechas + "/" + lista.length));
@@ -2737,6 +2804,7 @@
 
   function filaPregunta(e, p) {
     var cont = crearElemento("div", "pregunta" + (respondida(e.respuestas[p.id]) ? " respondida" : ""));
+    cont.dataset.id = p.id;
     cont.appendChild(crearElemento("label", "pregunta-texto", p.texto));
     if (p.ayuda) cont.appendChild(crearElemento("span", "pregunta-ayuda", p.ayuda));
     var campos = crearElemento("div", "pregunta-campos");
