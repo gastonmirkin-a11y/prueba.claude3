@@ -459,8 +459,8 @@
   <button type="button" class="nav-tab" id="navInsc" data-seccion="inscripciones">🏛️ Inscripciones <span class="nav-badge oculto" id="navBadgeInsc"></span></button>
   <button type="button" class="nav-tab" id="navPagos" data-seccion="pagos">💰 Pagos <span class="nav-badge oculto" id="navBadgePagos"></span></button>
   <button type="button" class="nav-tab" id="navFacturar" data-seccion="facturar">🧾 A facturar <span class="nav-badge oculto" id="navBadgeFacturar"></span></button>
-  <button type="button" class="nav-tab" id="navServ" data-seccion="serv">💡 Mensuales <span class="nav-badge oculto" id="navBadgeServ"></span></button>
-  <button type="button" class="nav-tab" id="navCargas" data-seccion="cargas">🏦 Aportes <span class="nav-badge oculto" id="navBadgeCargas"></span></button>
+  <button type="button" class="nav-tab" id="navServ" data-seccion="serv">💡 Servicios <span class="nav-badge oculto" id="navBadgeServ"></span></button>
+  <button type="button" class="nav-tab" id="navCargas" data-seccion="cargas">🏦 DDJJ mensuales <span class="nav-badge oculto" id="navBadgeCargas"></span></button>
 </nav>
 
 <!-- Pantalla: falta configurar Firebase -->
@@ -565,7 +565,7 @@
     <button type="button" class="menu-boton" id="menuServ">
       <span class="icono">💡</span>
       <span class="texto">
-        <span class="titulo">Pagos mensuales</span>
+        <span class="titulo">Servicios</span>
         <span class="sub">Expensas, luz, teléfono y otros pagos que vencen todos los meses. Aviso 10 días antes del vencimiento.</span>
       </span>
       <span class="contador cero" id="contadorServ">✓</span>
@@ -573,7 +573,7 @@
     <button type="button" class="menu-boton" id="menuCargas">
       <span class="icono">🏦</span>
       <span class="texto">
-        <span class="titulo">Aportes e impuestos</span>
+        <span class="titulo">DDJJ mensuales</span>
         <span class="sub">Aportes notariales, impuesto de sellos, caja notarial, ley 404, SICORE y otras obligaciones mensuales.</span>
       </span>
       <span class="contador cero" id="contadorCargas">✓</span>
@@ -855,7 +855,7 @@
     </section>
   </div>
 
-  <!-- Sección Pagos mensuales (servicios) -->
+  <!-- Sección Servicios (pagos mensuales) -->
   <div id="seccionServ" class="oculto">
     <div id="alertasServ" class="alertas sin-alertas"></div>
 
@@ -875,12 +875,12 @@
           <button type="button" class="secundario" id="btnCancelarServ" style="display:none; margin-top:6px;">Cancelar</button>
         </div>
       </form>
-      <p class="nota">Se carga una sola vez y la web genera el vencimiento de cada mes. Cada mes, anotá en la fila la <strong>fecha de pago</strong> y el <strong>monto</strong>: el concepto queda «Pagado» hasta el mes siguiente. La fila se pone <strong style="color:var(--amarillo)">amarilla</strong> 10 días antes del vencimiento y <strong style="color:var(--rojo)">roja</strong> si venció sin pagar.</p>
+      <p class="nota">Se carga una sola vez y la web genera el vencimiento de cada mes; podés cambiar el día editando «Vence este mes» en la fila (queda fijado para todos los meses). Cada mes, anotá en la fila la <strong>fecha de pago</strong> y el <strong>monto</strong>: el concepto queda «Pagado» hasta el mes siguiente. La fila se pone <strong style="color:var(--amarillo)">amarilla</strong> 10 días antes del vencimiento y <strong style="color:var(--rojo)">roja</strong> si venció sin pagar.</p>
     </section>
 
     <section class="panel">
       <div class="barra-tabla">
-        <h2 style="margin:0;">Pagos mensuales</h2>
+        <h2 style="margin:0;">Servicios</h2>
         <div class="acciones-globales">
           <button type="button" class="secundario" id="btnExportarServ">Exportar respaldo</button>
           <button type="button" class="secundario" id="btnImportarServ">Importar respaldo</button>
@@ -907,7 +907,7 @@
     </section>
   </div>
 
-  <!-- Sección Aportes e impuestos (cargas notariales) -->
+  <!-- Sección DDJJ mensuales (cargas notariales) -->
   <div id="seccionCargas" class="oculto">
     <div id="alertasCargas" class="alertas sin-alertas"></div>
 
@@ -927,12 +927,12 @@
           <button type="button" class="secundario" id="btnCancelarCargas" style="display:none; margin-top:6px;">Cancelar</button>
         </div>
       </form>
-      <p class="nota">Se carga una sola vez y la web genera el vencimiento de cada mes. Si un concepto tiene dos vencimientos (ej. SICORE), cargalo dos veces: «SICORE 1ª quincena» y «SICORE 2ª quincena», cada uno con su día. La fila se pone <strong style="color:var(--amarillo)">amarilla</strong> 10 días antes y <strong style="color:var(--rojo)">roja</strong> si venció sin pagar.</p>
+      <p class="nota">Se carga una sola vez y la web genera el vencimiento de cada mes; podés cambiar el día editando «Vence este mes» en la fila (queda fijado para todos los meses). Si un concepto tiene dos vencimientos (ej. SICORE), cargalo dos veces: «SICORE 1ª quincena» y «SICORE 2ª quincena», cada uno con su día. La fila se pone <strong style="color:var(--amarillo)">amarilla</strong> 10 días antes y <strong style="color:var(--rojo)">roja</strong> si venció sin pagar.</p>
     </section>
 
     <section class="panel">
       <div class="barra-tabla">
-        <h2 style="margin:0;">Aportes e impuestos</h2>
+        <h2 style="margin:0;">DDJJ mensuales</h2>
         <div class="acciones-globales">
           <button type="button" class="secundario" id="btnExportarCargas">Exportar respaldo</button>
           <button type="button" class="secundario" id="btnImportarCargas">Importar respaldo</button>
@@ -1008,8 +1008,8 @@
 
   // Configuración de las dos secciones de pagos recurrentes (misma lógica, distinta colección)
   var MENSUALES = [
-    { col: COLECCION_SERV, sufijo: "Serv", seccion: "serv", nombreSeccion: "Pagos mensuales" },
-    { col: COLECCION_CARGAS, sufijo: "Cargas", seccion: "cargas", nombreSeccion: "Aportes e impuestos" }
+    { col: COLECCION_SERV, sufijo: "Serv", seccion: "serv", nombreSeccion: "Servicios" },
+    { col: COLECCION_CARGAS, sufijo: "Cargas", seccion: "cargas", nombreSeccion: "DDJJ mensuales" }
   ];
   var mensuales = {};      // col -> lista de conceptos
   var mensualesListos = {}; // col -> bool
@@ -1356,10 +1356,10 @@
       titulo.textContent = "🧾 Trabajos a facturar";
       sub.textContent = "Trabajos hechos pendientes de facturación — amarillo a los 15 días, rojo a los 30";
     } else if (nombre === "serv") {
-      titulo.textContent = "💡 Pagos mensuales";
+      titulo.textContent = "💡 Servicios";
       sub.textContent = "Expensas, luz, teléfono y otros vencimientos de todos los meses — aviso 10 días antes";
     } else if (nombre === "cargas") {
-      titulo.textContent = "🏦 Aportes e impuestos";
+      titulo.textContent = "🏦 DDJJ mensuales";
       sub.textContent = "Aportes notariales, sellos, caja notarial, ley 404, SICORE — aviso 10 días antes";
     } else {
       titulo.textContent = "Seguimiento notarial";
@@ -1639,6 +1639,23 @@
     return el;
   }
 
+  // Celda con una fecha editable en la propia fila.
+  // alCambiar recibe el valor nuevo; si devuelve false, se revierte
+  // (sirve para las fechas obligatorias, que no se pueden dejar vacías).
+  function celdaFecha(valor, etiqueta, alCambiar) {
+    var td = crearElemento("td", "numero");
+    var inp = document.createElement("input");
+    inp.type = "date";
+    inp.value = valor || "";
+    inp.setAttribute("aria-label", etiqueta);
+    inp.addEventListener("change", function () {
+      if (!anioPlausible(inp.value)) return; // año a medio escribir: se espera
+      if (alCambiar(inp.value) === false) inp.value = valor || "";
+    });
+    td.appendChild(inp);
+    return td;
+  }
+
   function botonFila(clase, texto, alClic) {
     var b = crearElemento("button", "boton-fila " + clase, texto);
     b.type = "button";
@@ -1904,33 +1921,17 @@
 
       tr.appendChild(crearElemento("td", null, NOMBRES_JURISDICCION[e.jurisdiccion] + " (" + info.plazo + " días)"));
 
-      // Fecha de la escritura: editable en la fila (es obligatoria, no se permite vaciar)
-      var tdEsc = crearElemento("td", "numero");
-      var inpEsc = document.createElement("input");
-      inpEsc.type = "date";
-      inpEsc.value = e.fechaEscritura;
-      inpEsc.setAttribute("aria-label", "Fecha de la escritura de " + e.nombre);
-      inpEsc.addEventListener("change", function () {
-        if (!anioPlausible(inpEsc.value)) return; // año a medio escribir: se espera
-        if (inpEsc.value) actualizar(COLECCION_CERT, e.id, { fechaEscritura: inpEsc.value });
-        else inpEsc.value = e.fechaEscritura; // no se puede dejar vacía
-      });
-      tdEsc.appendChild(inpEsc);
-      tr.appendChild(tdEsc);
+      // Fecha de la escritura: obligatoria, no se permite vaciar
+      tr.appendChild(celdaFecha(e.fechaEscritura, "Fecha de la escritura de " + e.nombre, function (v) {
+        if (!v) return false;
+        actualizar(COLECCION_CERT, e.id, { fechaEscritura: v });
+      }));
 
       tr.appendChild(crearElemento("td", "numero", formatear(info.fechaSugerida)));
 
-      var tdPedido = crearElemento("td", "numero");
-      var inpPedido = document.createElement("input");
-      inpPedido.type = "date";
-      inpPedido.value = e.fechaPedido || "";
-      inpPedido.setAttribute("aria-label", "Fecha de pedido de " + e.nombre);
-      inpPedido.addEventListener("change", function () {
-        if (!anioPlausible(inpPedido.value)) return;
-        actualizar(COLECCION_CERT, e.id, { fechaPedido: inpPedido.value || null });
-      });
-      tdPedido.appendChild(inpPedido);
-      tr.appendChild(tdPedido);
+      tr.appendChild(celdaFecha(e.fechaPedido, "Fecha de pedido de " + e.nombre, function (v) {
+        actualizar(COLECCION_CERT, e.id, { fechaPedido: v || null });
+      }));
 
       cuerpo.appendChild(tr);
     });
@@ -1968,21 +1969,18 @@
       tdEstado.appendChild(crearElemento("span", "badge " + info.estado, info.textoEstado));
       tr.appendChild(tdEstado);
 
-      tr.appendChild(crearElemento("td", "numero", formatear(e.fechaOtorgamiento)));
+      // Fecha de otorgamiento: obligatoria (es la base del plazo de 45 días)
+      tr.appendChild(celdaFecha(e.fechaOtorgamiento, "Fecha de otorgamiento de " + e.nombre, function (v) {
+        if (!v) return false;
+        actualizar(COLECCION_INSC, e.id, { fechaOtorgamiento: v });
+      }));
+
       tr.appendChild(crearElemento("td", "numero", formatear(info.vencimiento)));
       tr.appendChild(crearElemento("td", "numero", info.estado === "presentada" ? "—" : textoDias(info.diasRestantes)));
 
-      var tdPres = crearElemento("td", "numero");
-      var inpPres = document.createElement("input");
-      inpPres.type = "date";
-      inpPres.value = e.fechaPresentacion || "";
-      inpPres.setAttribute("aria-label", "Fecha de presentación de " + e.nombre);
-      inpPres.addEventListener("change", function () {
-        if (!anioPlausible(inpPres.value)) return;
-        actualizar(COLECCION_INSC, e.id, { fechaPresentacion: inpPres.value || null });
-      });
-      tdPres.appendChild(inpPres);
-      tr.appendChild(tdPres);
+      tr.appendChild(celdaFecha(e.fechaPresentacion, "Fecha de presentación de " + e.nombre, function (v) {
+        actualizar(COLECCION_INSC, e.id, { fechaPresentacion: v || null });
+      }));
 
       var tdEntrada = crearElemento("td", "numero");
       var inpEntrada = document.createElement("input");
@@ -2044,7 +2042,11 @@
 
       tr.appendChild(crearElemento("td", null, e.cliente || "—"));
       tr.appendChild(crearElemento("td", null, e.datosFactura || "—"));
-      tr.appendChild(crearElemento("td", "numero", formatear(e.fechaFactura)));
+      // Fecha de factura: obligatoria (es la base de los avisos por antigüedad)
+      tr.appendChild(celdaFecha(e.fechaFactura, "Fecha de factura de " + e.descripcion, function (v) {
+        if (!v) return false;
+        actualizar(COLECCION_PAGOS, e.id, { fechaFactura: v });
+      }));
       tr.appendChild(crearElemento("td", "numero", info.estado === "cobrado" ? "—" : String(info.dias)));
       tr.appendChild(crearElemento("td", "numero", formatMonto(e.monto)));
 
@@ -2062,18 +2064,9 @@
       tdCobrado.appendChild(inpCobrado);
       tr.appendChild(tdCobrado);
 
-      // Fecha de cobro: editable en la fila
-      var tdFCobro = crearElemento("td", "numero");
-      var inpFCobro = document.createElement("input");
-      inpFCobro.type = "date";
-      inpFCobro.value = e.fechaCobro || "";
-      inpFCobro.setAttribute("aria-label", "Fecha de cobro de " + e.descripcion);
-      inpFCobro.addEventListener("change", function () {
-        if (!anioPlausible(inpFCobro.value)) return;
-        actualizar(COLECCION_PAGOS, e.id, { fechaCobro: inpFCobro.value || null });
-      });
-      tdFCobro.appendChild(inpFCobro);
-      tr.appendChild(tdFCobro);
+      tr.appendChild(celdaFecha(e.fechaCobro, "Fecha de cobro de " + e.descripcion, function (v) {
+        actualizar(COLECCION_PAGOS, e.id, { fechaCobro: v || null });
+      }));
 
       var tdEstado = document.createElement("td");
       var claseBadge = info.estado === "cobrado" ? "presentada"
@@ -2170,21 +2163,17 @@
 
       tr.appendChild(crearElemento("td", null, e.cliente || "—"));
       tr.appendChild(crearElemento("td", "numero", formatMonto(e.presupuesto)));
-      tr.appendChild(crearElemento("td", "numero", formatear(e.fechaTrabajo)));
+      // Fecha del trabajo: obligatoria (es la base de la antigüedad)
+      tr.appendChild(celdaFecha(e.fechaTrabajo, "Fecha del trabajo de " + e.descripcion, function (v) {
+        if (!v) return false;
+        actualizar(COLECCION_FACTURAR, e.id, { fechaTrabajo: v });
+      }));
       tr.appendChild(crearElemento("td", "numero", info.estado === "facturado" ? "—" : String(info.dias)));
 
-      // Fecha de factura: editable en la fila (al cargarla se crea el pago)
-      var tdFF = crearElemento("td", "numero");
-      var inpFF = document.createElement("input");
-      inpFF.type = "date";
-      inpFF.value = e.fechaFactura || "";
-      inpFF.setAttribute("aria-label", "Fecha de factura de " + e.descripcion);
-      inpFF.addEventListener("change", function () {
-        if (!anioPlausible(inpFF.value)) return;
-        guardarFacturar(e.id, e, { fechaFactura: inpFF.value || null });
-      });
-      tdFF.appendChild(inpFF);
-      tr.appendChild(tdFF);
+      // Fecha de factura: al cargarla se crea el trabajo en «Seguimiento de pagos»
+      tr.appendChild(celdaFecha(e.fechaFactura, "Fecha de factura de " + e.descripcion, function (v) {
+        guardarFacturar(e.id, e, { fechaFactura: v || null });
+      }));
 
       // N° de factura: editable en la fila
       var tdNF = crearElemento("td", "numero");
@@ -2257,21 +2246,19 @@
       tdEstado.appendChild(crearElemento("span", "badge " + claseBadge, info.textoEstado));
       tr.appendChild(tdEstado);
 
-      tr.appendChild(crearElemento("td", "numero", formatear(info.vencimiento)));
+      // Vence este mes: editable. Sale del día guardado en el concepto, así que
+      // al cambiarla se toma el día y queda fijado para todos los meses.
+      tr.appendChild(celdaFecha(info.vencimiento, "Vencimiento de " + e.nombre + " (fija el día de todos los meses)", function (v) {
+        if (!v) return false;
+        actualizar(cfg.col, e.id, { diaVencimiento: Number(v.slice(8, 10)) });
+      }));
+
       tr.appendChild(crearElemento("td", "numero", info.estado === "pagado" ? "—" : textoDias(info.diasRestantes)));
 
-      // Fecha de pago del mes actual: editable en la fila
-      var tdFecha = crearElemento("td", "numero");
-      var inpFecha = document.createElement("input");
-      inpFecha.type = "date";
-      inpFecha.value = (info.pagoMes && info.pagoMes.fecha) || "";
-      inpFecha.setAttribute("aria-label", "Fecha de pago de " + e.nombre);
-      inpFecha.addEventListener("change", function () {
-        if (!anioPlausible(inpFecha.value)) return;
-        guardarPagoMes(cfg, e, { fecha: inpFecha.value || null });
-      });
-      tdFecha.appendChild(inpFecha);
-      tr.appendChild(tdFecha);
+      // Fecha de pago del mes actual
+      tr.appendChild(celdaFecha((info.pagoMes && info.pagoMes.fecha) || null, "Fecha de pago de " + e.nombre, function (v) {
+        guardarPagoMes(cfg, e, { fecha: v || null });
+      }));
 
       // Monto pagado del mes actual: editable en la fila
       var tdMonto = crearElemento("td", "numero");
