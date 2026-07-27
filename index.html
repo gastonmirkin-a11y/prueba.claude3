@@ -351,6 +351,8 @@
   }
   button.boton-fila.enlace { border: 1px solid var(--azul-claro); }
   button.boton-fila.peligro { border: 1px solid var(--rojo); }
+  .accion-abajo { margin-top: 6px; }
+  .accion-abajo button { padding: 4px 12px; font-size: 0.82rem; }
 
   .barra-tabla {
     display: flex;
@@ -1042,7 +1044,6 @@
               <th>Carpeta</th>
               <th>Año</th>
               <th>Checklist</th>
-              <th></th>
             </tr>
           </thead>
           <tbody id="cuerpoTablaCarpetas"></tbody>
@@ -1138,7 +1139,9 @@
       { id: "estudioTituloQuien", texto: "¿Quién hace el estudio de título?", tipo: "opcion", opciones: ["La escribanía", "Referencista"], nota: true, dependeDe: { id: "estudioTitulo", valor: "Estudio de título" } },
       { id: "asentimientoConyugal", texto: "¿Asentimiento conyugal corresponde?", tipo: "opcion", opciones: SI_NO_NC, nota: true, etiquetaNota: "Datos del cónyuge" },
       { id: "conformidad3ro", texto: "¿Conformidad de 3ro?", tipo: "opcion", opciones: SI_NO_NC, ayuda: "Ej.: donación entre hermanos, usufructuario, sucesión", nota: true },
-      { id: "tituloOriginal", texto: "¿Título original trajeron o dejaron?", tipo: "opcion", opciones: ["Trajeron", "Dejaron", "No lo tienen"] },
+      { id: "tituloOriginal", texto: "¿Título original trajeron o dejaron?", tipo: "opcion", opciones: ["Trajeron para ver el original en la escribanía y se lo llevaron", "Dejaron", "No lo tienen"] },
+      { id: "tituloFechaDejaron", texto: "¿En qué fecha lo dejaron?", tipo: "fecha", dependeDe: { id: "tituloOriginal", valor: "Dejaron" } },
+      { id: "tituloFechaTrajeron", texto: "¿En qué fecha lo trajeron?", tipo: "fecha", dependeDe: { id: "tituloOriginal", valor: "Trajeron para ver el original en la escribanía y se lo llevaron" } },
       { id: "desafectacionVivienda", texto: "¿Desafectación régimen protección vivienda?", tipo: "opcion", opciones: SI_NO_NC },
       { id: "afectacionVivienda", texto: "¿Afectación régimen protección vivienda?", tipo: "opcion", opciones: SI_NO_NC },
       { id: "boletoCesion", texto: "¿Boleto o cesión con o sin posesión?", tipo: "opcion", opciones: ["No hay boleto", "Con posesión", "Sin posesión"] },
@@ -1930,6 +1933,15 @@
     acc.appendChild(botonFila("peligro", "Eliminar", op.eliminar));
     if (op.recordatorio) acc.appendChild(botonFila("enlace", "📅 Recordatorio", op.recordatorio));
     td.appendChild(acc);
+    // Botón principal debajo de los otros, para tenerlo a mano sin ir hasta la derecha
+    if (op.abajo) {
+      var fila = crearElemento("div", "accion-abajo");
+      var b = crearElemento("button", "secundario", op.abajo.texto);
+      b.type = "button";
+      b.addEventListener("click", op.abajo.alClic);
+      fila.appendChild(b);
+      td.appendChild(fila);
+    }
     return td;
   }
 
@@ -2680,7 +2692,7 @@
       var td0 = crearElemento("td", "vacio", carpetasListas
         ? "Todavía no hay escrituras cargadas. Agregá la primera con el formulario de arriba."
         : "Cargando datos compartidos…");
-      td0.colSpan = 5; tr0.appendChild(td0); cuerpo.appendChild(tr0);
+      td0.colSpan = 4; tr0.appendChild(td0); cuerpo.appendChild(tr0);
       return;
     }
     carpetas.slice().sort(function (a, b) {
@@ -2696,7 +2708,8 @@
             if (carpetaAbiertaId === e.id) { carpetaAbiertaId = null; mostrarSeccion("carpetas"); }
             eliminar(COLECCION_CARPETAS, e.id);
           }
-        }
+        },
+        abajo: { texto: "Abrir checklist", alClic: function () { abrirCarpeta(e.id); } }
       }));
       tr.appendChild(crearElemento("td", "numero", e.numero || "—"));
       tr.appendChild(crearElemento("td", "numero", e.anio || "—"));
@@ -2704,12 +2717,6 @@
       tdAv.appendChild(crearElemento("span", "badge " + (av.hechas === av.total ? "presentada" : "pendiente"),
         av.hechas + " de " + av.total));
       tr.appendChild(tdAv);
-      var tdAbrir = crearElemento("td", "numero");
-      var btn = crearElemento("button", "secundario", "Abrir checklist");
-      btn.type = "button";
-      btn.addEventListener("click", function () { abrirCarpeta(e.id); });
-      tdAbrir.appendChild(btn);
-      tr.appendChild(tdAbrir);
       cuerpo.appendChild(tr);
     });
   }
