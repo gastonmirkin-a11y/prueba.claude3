@@ -258,6 +258,11 @@
   .pregunta-campos input[type=text] { flex: 1; min-width: 200px; }
   .pregunta-campos .etiqueta-nota { font-size: 0.8rem; color: var(--gris-texto); }
   .pregunta.respondida .pregunta-texto::before { content: "✓ "; color: var(--verde); }
+  /* Al llegar desde el bloque «faltan», la pregunta se marca un momento para no perderla de vista */
+  .pregunta.resaltada { background: var(--amarillo-fondo); border-radius: 8px; }
+  .pregunta { transition: background 0.4s ease; }
+  .faltan-ubicacion { font-size: 0.78rem; color: var(--rojo-oscuro); opacity: 0.85; display: block; }
+  .faltan-listo { margin-bottom: 12px; }
 
   /* Bloque destacado: qué certificados hay que pedir */
   .aviso-pedir {
@@ -1077,7 +1082,10 @@
           <p class="nota" style="margin-top:12px;">Acá va a ir el checklist de tareas, con tilde y fecha de cuándo se hizo cada cosa.</p>
         </div>
       </aside>
-      <div id="cuestionarioCarpeta"></div>
+      <div>
+        <div id="faltanCarpeta"></div>
+        <div id="cuestionarioCarpeta"></div>
+      </div>
     </div>
   </div>
 
@@ -1226,9 +1234,12 @@
 
   // Lista plana de todas las preguntas, para contar el avance
   var PREGUNTAS = [];
+  var UBICACION = {}; // id de pregunta -> "Bloque" o "Bloque › Subgrupo", para ubicarla de un vistazo
   CHECKLIST.forEach(function (b) {
-    (b.preguntas || []).forEach(function (p) { PREGUNTAS.push(p); });
-    (b.subgrupos || []).forEach(function (g) { g.preguntas.forEach(function (p) { PREGUNTAS.push(p); }); });
+    (b.preguntas || []).forEach(function (p) { PREGUNTAS.push(p); UBICACION[p.id] = b.bloque; });
+    (b.subgrupos || []).forEach(function (g) {
+      g.preguntas.forEach(function (p) { PREGUNTAS.push(p); UBICACION[p.id] = b.bloque + " › " + g.titulo; });
+    });
   });
 
   var mensuales = {};      // col -> lista de conceptos
@@ -2706,6 +2717,7 @@
     document.querySelectorAll("#cuestionarioCarpeta .pregunta[data-id]").forEach(function (el) {
       el.classList.toggle("respondida", respondida((e.respuestas || {})[el.dataset.id]));
     });
+    renderFaltanCarpeta(e);
     renderAvanceCarpeta(e);
     renderTablaCarpetas();
   }
@@ -2795,6 +2807,7 @@
     var cont = document.getElementById("cuestionarioCarpeta");
     if (!e) {
       cont.innerHTML = "";
+      document.getElementById("faltanCarpeta").innerHTML = "";
       document.getElementById("rotuloCarpeta").textContent = "";
       return;
     }
@@ -2820,7 +2833,61 @@
     });
     aplicarDependencias(e);
 
+    renderFaltanCarpeta(e);
     renderAvanceCarpeta(e);
+  }
+
+  // Bloque de arriba con las preguntas sin responder, para no tener que buscarlas
+  // a ojo entre los 4 bloques y los 7 subgrupos. Se listan hasta MAX_FALTAN.
+  var MAX_FALTAN = 12;
+
+  function renderFaltanCarpeta(e) {
+    var caja = document.getElementById("faltanCarpeta");
+    // Al achicarse el bloque, todo lo de abajo sube y la pantalla salta justo
+    // mientras se está respondiendo: se mide antes y después para compensarlo.
+    var altoAntes = caja.offsetHeight;
+    caja.innerHTML = "";
+    if (!e) return;
+
+    var r = e.respuestas || {};
+    var faltan = preguntasQueAplican(e).filter(function (p) { return !respondida(r[p.id]); });
+
+    if (faltan.length === 0) {
+      var listo = crearElemento("div", "alertas sin-alertas faltan-listo");
+      listo.appendChild(crearElemento("h2", null, "✓ Está todo respondido"));
+      caja.appendChild(listo);
+    } else {
+      var aviso = crearElemento("div", "aviso-pedir");
+      aviso.appendChild(crearElemento("div", "aviso-pedir-titulo",
+        "⚠ Falta" + (faltan.length === 1 ? " 1 respuesta" : "n " + faltan.length + " respuestas")));
+      faltan.slice(0, MAX_FALTAN).forEach(function (p) {
+        var item = crearElemento("div", "aviso-pedir-item");
+        var texto = crearElemento("span", "aviso-pedir-nombre", p.texto);
+        texto.insertBefore(crearElemento("span", "faltan-ubicacion", UBICACION[p.id] || ""), texto.firstChild);
+        item.appendChild(texto);
+        item.appendChild(crearElemento("span", "aviso-pedir-motivo", "Ir →"));
+        item.addEventListener("click", function () { irAPregunta(p.id); });
+        aviso.appendChild(item);
+      });
+      if (faltan.length > MAX_FALTAN) {
+        aviso.appendChild(crearElemento("div", "aviso-pedir-mas", "y " + (faltan.length - MAX_FALTAN) + " más"));
+      }
+      caja.appendChild(aviso);
+    }
+
+    var delta = caja.offsetHeight - altoAntes;
+    if (delta !== 0 && altoAntes > 0) window.scrollBy(0, delta);
+  }
+
+  // Lleva a la pregunta y la resalta un momento
+  function irAPregunta(id) {
+    var el = document.querySelector('#cuestionarioCarpeta .pregunta[data-id="' + id + '"]');
+    if (!el) return;
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    el.classList.add("resaltada");
+    setTimeout(function () { el.classList.remove("resaltada"); }, 2000);
+    var campo = el.querySelector("select, input");
+    if (campo) campo.focus({ preventScroll: true });
   }
 
   // Lateral: avance total y por bloque, contando solo las preguntas que aplican
