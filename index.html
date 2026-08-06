@@ -2369,6 +2369,19 @@
     });
   }
 
+  // Busca el registro vinculado de otra sección. El id guardado puede quedar colgado
+  // —al restaurar un respaldo cada registro recibe un id nuevo—, así que si no aparece
+  // se lo rescata por el nombre, que es el dato que la web copia al crear el vínculo.
+  // Devuelve null si el registro ya no existe (se lo borró a mano).
+  function vinculado(lista, id, campo, valor) {
+    if (id) {
+      var porId = lista.find(function (x) { return x.id === id; });
+      if (porId) return porId;
+    }
+    if (!valor) return null;
+    return lista.find(function (x) { return x[campo] === valor; }) || null;
+  }
+
   // Guarda cambios en un certificado y, al cargar la fecha de firma por primera vez,
   // pasa la escritura a «Inscripción de escrituras» (idempotente por inscripcionCreada).
   function guardarCert(id, eFila, cambios) {
@@ -2385,9 +2398,14 @@
         if (ref && ref.id) actualizar(COLECCION_CERT, id, { inscripcionId: ref.id });
       });
       cambios.inscripcionCreada = true;
-    } else if (e.inscripcionId && cambios.fechaFirma) {
+    } else if (e.inscripcionCreada && cambios.fechaFirma) {
       // Si se corrige la fecha de firma, se corrige también la de otorgamiento
-      actualizar(COLECCION_INSC, e.inscripcionId, { fechaOtorgamiento: cambios.fechaFirma });
+      var insc = vinculado(inscripciones, e.inscripcionId, "nombre", resultado.nombre);
+      if (insc) {
+        actualizar(COLECCION_INSC, insc.id, { fechaOtorgamiento: cambios.fechaFirma });
+        // El vínculo venía colgado: se deja apuntando a la inscripción que existe hoy
+        if (insc.id !== e.inscripcionId) cambios.inscripcionId = insc.id;
+      }
     }
     actualizar(COLECCION_CERT, id, cambios);
   }
@@ -2413,12 +2431,19 @@
         if (ref && ref.id) actualizar(COLECCION_FACTURAR, id, { pagoId: ref.id });
       });
       cambios.pagoCreado = true;
-    } else if (e.pagoId) {
+    } else if (e.pagoCreado) {
       // El pago ya existe: si se cargan o corrigen los datos de la factura, se copian allá
       var sinc = {};
       if ("numeroFactura" in cambios) sinc.datosFactura = cambios.numeroFactura || "";
       if (cambios.fechaFactura) sinc.fechaFactura = cambios.fechaFactura;
-      if (Object.keys(sinc).length > 0) actualizar(COLECCION_PAGOS, e.pagoId, sinc);
+      if (Object.keys(sinc).length > 0) {
+        var pago = vinculado(trabajos, e.pagoId, "descripcion", resultado.descripcion);
+        if (pago) {
+          actualizar(COLECCION_PAGOS, pago.id, sinc);
+          // El vínculo venía colgado: se deja apuntando al pago que existe hoy
+          if (pago.id !== e.pagoId) cambios.pagoId = pago.id;
+        }
+      }
     }
     actualizar(COLECCION_FACTURAR, id, cambios);
   }
@@ -3202,7 +3227,8 @@
 
   document.getElementById("btnExportarCert").addEventListener("click", function () {
     var datos = certificados.map(function (e) {
-      return { nombre: e.nombre, jurisdiccion: e.jurisdiccion, fechaEscritura: e.fechaEscritura, fechaPedido: e.fechaPedido || null, fechaFirma: e.fechaFirma || null, inscripcionCreada: !!e.inscripcionCreada, inscripcionId: e.inscripcionId || null };
+      // El id de la inscripción no se exporta: solo vale dentro de esta base
+      return { nombre: e.nombre, jurisdiccion: e.jurisdiccion, fechaEscritura: e.fechaEscritura, fechaPedido: e.fechaPedido || null, fechaFirma: e.fechaFirma || null, inscripcionCreada: !!e.inscripcionCreada };
     });
     descargar("certificados-" + hoyISO() + ".json", JSON.stringify(datos, null, 2));
   });
@@ -3216,7 +3242,9 @@
       });
       if (!confirm("Se van a importar " + validas.length + " certificados y se reemplazará el listado compartido que ven los cinco. ¿Continuar?")) return;
       reemplazarTodo(COLECCION_CERT, certificados, validas.map(function (x) {
-        return { nombre: x.nombre, jurisdiccion: x.jurisdiccion, fechaEscritura: x.fechaEscritura, fechaPedido: x.fechaPedido || null, fechaFirma: x.fechaFirma || null, inscripcionCreada: !!x.inscripcionCreada, inscripcionId: x.inscripcionId || null };
+        // El vínculo se guarda vacío: el id que traiga el archivo es de otra base y quedaría
+        // colgado. Se vuelve a encontrar la inscripción por nombre la próxima vez que haga falta.
+        return { nombre: x.nombre, jurisdiccion: x.jurisdiccion, fechaEscritura: x.fechaEscritura, fechaPedido: x.fechaPedido || null, fechaFirma: x.fechaFirma || null, inscripcionCreada: !!x.inscripcionCreada, inscripcionId: null };
       }));
       cancelarEdicionCert();
     });
@@ -3277,7 +3305,8 @@
 
   document.getElementById("btnExportarFacturar").addEventListener("click", function () {
     var datos = porFacturar.map(function (e) {
-      return { descripcion: e.descripcion, cliente: e.cliente || "", presupuesto: aNumero(e.presupuesto), fechaTrabajo: e.fechaTrabajo, fechaFactura: e.fechaFactura || null, numeroFactura: e.numeroFactura || "", pagoCreado: !!e.pagoCreado, pagoId: e.pagoId || null };
+      // El id del pago no se exporta: solo vale dentro de esta base
+      return { descripcion: e.descripcion, cliente: e.cliente || "", presupuesto: aNumero(e.presupuesto), fechaTrabajo: e.fechaTrabajo, fechaFactura: e.fechaFactura || null, numeroFactura: e.numeroFactura || "", pagoCreado: !!e.pagoCreado };
     });
     descargar("por-facturar-" + hoyISO() + ".json", JSON.stringify(datos, null, 2));
   });
@@ -3291,7 +3320,9 @@
       });
       if (!confirm("Se van a importar " + validas.length + " trabajos a facturar y se reemplazará el listado compartido que ven los cinco. ¿Continuar?")) return;
       reemplazarTodo(COLECCION_FACTURAR, porFacturar, validas.map(function (x) {
-        return { descripcion: x.descripcion, cliente: x.cliente || "", presupuesto: aNumero(x.presupuesto), fechaTrabajo: x.fechaTrabajo, fechaFactura: x.fechaFactura || null, numeroFactura: x.numeroFactura || "", pagoCreado: !!x.pagoCreado, pagoId: x.pagoId || null };
+        // El vínculo se guarda vacío: el id que traiga el archivo es de otra base y quedaría
+        // colgado. Se vuelve a encontrar el pago por su descripción la próxima vez que haga falta.
+        return { descripcion: x.descripcion, cliente: x.cliente || "", presupuesto: aNumero(x.presupuesto), fechaTrabajo: x.fechaTrabajo, fechaFactura: x.fechaFactura || null, numeroFactura: x.numeroFactura || "", pagoCreado: !!x.pagoCreado, pagoId: null };
       }));
       cancelarEdicionFacturar();
     });
