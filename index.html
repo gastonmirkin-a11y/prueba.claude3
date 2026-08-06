@@ -809,10 +809,10 @@
             <tr>
               <th>Trabajo</th>
               <th>Cliente</th>
+              <th>Facturado</th>
               <th>Factura</th>
               <th>Fecha factura</th>
               <th>Días</th>
-              <th>Facturado</th>
               <th>Cobrado</th>
               <th>Fecha cobro</th>
               <th>Estado</th>
@@ -2328,6 +2328,7 @@
       }));
 
       tr.appendChild(crearElemento("td", null, e.cliente || "—"));
+      tr.appendChild(crearElemento("td", "numero", formatMonto(e.monto)));
       tr.appendChild(crearElemento("td", null, e.datosFactura || "—"));
       // Fecha de factura: obligatoria (es la base de los avisos por antigüedad)
       tr.appendChild(celdaFecha(e.fechaFactura, "Fecha de factura de " + e.descripcion, function (v) {
@@ -2335,7 +2336,6 @@
         actualizar(COLECCION_PAGOS, e.id, { fechaFactura: v });
       }));
       tr.appendChild(crearElemento("td", "numero", info.estado === "cobrado" ? "—" : String(info.dias)));
-      tr.appendChild(crearElemento("td", "numero", formatMonto(e.monto)));
 
       // Monto cobrado: editable en la fila
       var tdCobrado = crearElemento("td", "numero");
