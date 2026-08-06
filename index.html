@@ -500,11 +500,11 @@
   <button type="button" class="nav-tab" id="btnMenu">🏠 Inicio</button>
   <button type="button" class="nav-tab" id="navCert" data-seccion="certificados">📋 Certificados <span class="nav-badge oculto" id="navBadgeCert"></span></button>
   <button type="button" class="nav-tab" id="navInsc" data-seccion="inscripciones">🏛️ Inscripciones <span class="nav-badge oculto" id="navBadgeInsc"></span></button>
+  <button type="button" class="nav-tab" id="navCarpetas" data-seccion="carpetas">📁 Escrituras <span class="nav-badge oculto" id="navBadgeCarpetas"></span></button>
   <button type="button" class="nav-tab" id="navPagos" data-seccion="pagos">💰 Pagos <span class="nav-badge oculto" id="navBadgePagos"></span></button>
   <button type="button" class="nav-tab" id="navFacturar" data-seccion="facturar">🧾 A facturar <span class="nav-badge oculto" id="navBadgeFacturar"></span></button>
   <button type="button" class="nav-tab" id="navServ" data-seccion="serv">💡 Servicios <span class="nav-badge oculto" id="navBadgeServ"></span></button>
   <button type="button" class="nav-tab" id="navCargas" data-seccion="cargas">🏦 DDJJ mensuales <span class="nav-badge oculto" id="navBadgeCargas"></span></button>
-  <button type="button" class="nav-tab" id="navCarpetas" data-seccion="carpetas">📁 Escrituras <span class="nav-badge oculto" id="navBadgeCarpetas"></span></button>
 </nav>
 
 <!-- Pantalla: falta configurar Firebase -->
@@ -590,6 +590,14 @@
       </span>
       <span class="contador cero" id="contadorInsc">✓</span>
     </button>
+    <button type="button" class="menu-boton" id="menuCarpetas">
+      <span class="icono">📁</span>
+      <span class="texto">
+        <span class="titulo">Escrituras</span>
+        <span class="sub">Una carpeta por escritura a firmar, con el checklist prescriturario para ir completando.</span>
+      </span>
+      <span class="contador cero" id="contadorCarpetas">✓</span>
+    </button>
     <button type="button" class="menu-boton" id="menuPagos">
       <span class="icono">💰</span>
       <span class="texto">
@@ -621,14 +629,6 @@
         <span class="sub">Aportes notariales, impuesto de sellos, caja notarial, ley 404, SICORE y otras obligaciones mensuales.</span>
       </span>
       <span class="contador cero" id="contadorCargas">✓</span>
-    </button>
-    <button type="button" class="menu-boton" id="menuCarpetas">
-      <span class="icono">📁</span>
-      <span class="texto">
-        <span class="titulo">Escrituras</span>
-        <span class="sub">Una carpeta por escritura a firmar, con el checklist prescriturario para ir completando.</span>
-      </span>
-      <span class="contador cero" id="contadorCarpetas">✓</span>
     </button>
   </div>
 
