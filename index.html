@@ -460,6 +460,15 @@
     padding: 30px 10px !important;
     font-style: italic;
   }
+
+  /* En el celular los márgenes se comían casi una cuarta parte del ancho: se achican
+     para que entren más columnas de las tablas sin tener que arrastrar la pantalla.
+     Va al final de la hoja para ganarle a las reglas de #app, .panel y th/td. */
+  @media (max-width: 640px) {
+    #app { padding-left: 12px; padding-right: 12px; }
+    section.panel { padding-left: 10px; padding-right: 10px; }
+    th, td { padding-left: 6px; padding-right: 6px; }
+  }
 </style>
 </head>
 <body>
