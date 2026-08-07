@@ -258,6 +258,9 @@
   .pregunta-campos select, .pregunta-campos input { padding: 6px 10px; border: 1px solid var(--gris-borde); border-radius: 8px; font: inherit; }
   .pregunta-campos input[type=text] { flex: 1; min-width: 200px; }
   .pregunta-campos .etiqueta-nota { font-size: 0.8rem; color: var(--gris-texto); }
+  /* Cruz roja mientras falta responder, tilde verde al completar: así las
+     pendientes saltan a la vista al recorrer el checklist */
+  .pregunta .pregunta-texto::before { content: "✗ "; color: var(--rojo); }
   .pregunta.respondida .pregunta-texto::before { content: "✓ "; color: var(--verde); }
   /* Al llegar desde el bloque «faltan», la pregunta se marca un momento para no perderla de vista */
   .pregunta.resaltada { background: var(--amarillo-fondo); border-radius: 8px; }
