@@ -1194,13 +1194,13 @@
         { id: "inhibVto", texto: "¿Vencimiento?", tipo: "fecha" },
         { id: "inhibCuantas", texto: "¿Cuántas?", tipo: "numero" },
         { id: "haySucesion", texto: "¿Hay sucesión?", tipo: "opcion", opciones: SI_NO },
-        { id: "herederos", texto: "¿Cuántos herederos más el causante?", tipo: "numero" }
+        { id: "herederos", texto: "¿Cuántos herederos más el causante?", tipo: "numero", dependeDe: { id: "haySucesion", valor: "Sí" } }
       ]},
       { titulo: "F1 ABL", preguntas: [
         { id: "ablFechaPedido", texto: "¿Fecha de pedido?", tipo: "fecha" },
         { id: "ablVto", texto: "¿Vencimiento?", tipo: "fecha" },
         { id: "ablExento", texto: "¿Está exento?", tipo: "opcion", opciones: SI_NO },
-        { id: "ablBajaExencion", texto: "¿Bajá exención?", tipo: "opcion", opciones: SI_NO_NC },
+        { id: "ablBajaExencion", texto: "¿Bajá exención?", tipo: "opcion", opciones: SI_NO_NC, dependeDe: { id: "ablExento", valor: "Sí" } },
         { id: "ablUnidades", texto: "¿Cuántas unidades?", tipo: "numero" },
         { id: "ablDeuda", texto: "¿Hay deuda?", tipo: "opcion", opciones: SI_NO, nota: true }
       ]},
